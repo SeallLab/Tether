@@ -1,0 +1,15 @@
+{
+  "appId": "com.aarsh.tether",
+  "files": ["dist-react/**/*", "dist-electron/**/*"],
+  "icon": "./tether.png",
+  "mac": {
+    "target": "dmg"
+  },
+  "win": {
+    "target": ["portable", "msi"]
+  },
+  "linux": {
+    "target": "AppImage",
+    "category": "Utility"
+  }
+}
