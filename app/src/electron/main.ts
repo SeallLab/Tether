@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import dotenv from "dotenv";
 import { isDev } from "./util.js";
 import { ActivityMonitoringService } from "./services/ActivityMonitoringService.js";
 import { IPC_CHANNELS } from "../shared/constants.js";
@@ -9,6 +10,10 @@ import { IPC_CHANNELS } from "../shared/constants.js";
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Load environment variables from .env file
+// The .env file is in the app directory, so we go up 2 levels: dist-electron/electron -> dist-electron -> app
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 // Initialize the activity monitoring service
 let activityMonitoringService: ActivityMonitoringService;
@@ -44,7 +49,7 @@ app.on("ready", async () => {
   // Initialize and start activity monitoring service automatically
   console.log('[Main] Initializing activity monitoring service...');
   activityMonitoringService = new ActivityMonitoringService({
-    idle_threshold: 30, // 30 seconds for testing (instead of default 300)
+    idle_threshold: 10, // 10 seconds for testing (instead of default 300)
     idle_enabled: true,
     window_enabled: true,
     storage_path: path.join(__dirname, '..', '..', 'activity_logs'), // Store in app directory
@@ -54,6 +59,17 @@ app.on("ready", async () => {
   try {
     await activityMonitoringService.start();
     console.log('[Main] Activity monitoring started successfully');
+    
+    // Initialize LLM service
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (geminiApiKey) {
+      console.log('[Main] Found Gemini API key in environment, initializing with Gemini');
+      activityMonitoringService.initializeLLM(geminiApiKey);
+    } else {
+      console.log('[Main] No Gemini API key found, using mock provider');
+      activityMonitoringService.initializeLLM();
+    }
+    console.log('[Main] LLM service initialized');
   } catch (error) {
     console.error('[Main] Failed to start activity monitoring:', error);
   }
@@ -106,6 +122,27 @@ ipcMain.handle(IPC_CHANNELS.UPDATE_MONITORING_CONFIG, async (event, config) => {
     return { success: true, data: activityMonitoringService.getStatus() };
   } catch (error) {
     console.error('[IPC] Update config error:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// LLM Service IPC handlers
+ipcMain.handle(IPC_CHANNELS.SET_LLM_API_KEY, async (event, apiKey) => {
+  try {
+    activityMonitoringService.initializeLLM(apiKey);
+    return { success: true, data: activityMonitoringService.getLLMStatus() };
+  } catch (error) {
+    console.error('[IPC] Set LLM API key error:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle(IPC_CHANNELS.GET_LLM_STATUS, async () => {
+  try {
+    const status = activityMonitoringService.getLLMStatus();
+    return { success: true, data: status };
+  } catch (error) {
+    console.error('[IPC] Get LLM status error:', error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 });

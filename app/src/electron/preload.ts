@@ -31,5 +31,17 @@ contextBridge.exposeInMainWorld('electron', {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_ACTIVITY_STATUS),
     getRecentActivity: (minutes?: number) => ipcRenderer.invoke(IPC_CHANNELS.GET_RECENT_ACTIVITY, minutes),
     updateConfig: (config: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_MONITORING_CONFIG, config)
+  },
+
+  // LLM service API
+  llm: {
+    setApiKey: (apiKey: string) => ipcRenderer.invoke(IPC_CHANNELS.SET_LLM_API_KEY, apiKey),
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_LLM_STATUS),
+    onFocusNotification: (callback: (response: any) => void) => {
+      ipcRenderer.on(IPC_CHANNELS.FOCUS_NOTIFICATION, (event, data) => callback(data));
+    },
+    removeAllListeners: () => {
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.FOCUS_NOTIFICATION);
+    }
   }
 }); 

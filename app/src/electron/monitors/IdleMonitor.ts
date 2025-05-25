@@ -6,6 +6,7 @@ export class IdleMonitor extends BaseMonitor {
   private idleThreshold: number;
   private wasIdle: boolean = false;
   private checkInterval: NodeJS.Timeout | null = null;
+  public onIdleStateChange?: (isIdle: boolean, duration: number) => void;
 
   constructor(logger: any, idleThreshold: number = 300) { // 300 seconds (5 minutes) default
     super(logger);
@@ -61,11 +62,22 @@ export class IdleMonitor extends BaseMonitor {
         console.log('[IdleMonitor] User became idle');
         this.wasIdle = true;
         this.logIdleEvent(systemIdleTime, true, 'unknown');
+        
+        // Notify callback
+        if (this.onIdleStateChange) {
+          this.onIdleStateChange(true, systemIdleTime);
+        }
+        
       } else if (systemIdleTime < this.idleThreshold && this.wasIdle) {
         // User resumed activity
         console.log('[IdleMonitor] User resumed activity');
         this.wasIdle = false;
         this.logIdleEvent(systemIdleTime, false, 'unknown');
+        
+        // Notify callback
+        if (this.onIdleStateChange) {
+          this.onIdleStateChange(false, systemIdleTime);
+        }
       }
     } catch (error) {
       console.error('[IdleMonitor] Error checking idle status:', error);

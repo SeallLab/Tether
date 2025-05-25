@@ -6,5 +6,10 @@ export const IPC_CHANNELS = {
   STOP_ACTIVITY_MONITORING: 'stop-activity-monitoring',
   GET_ACTIVITY_STATUS: 'get-activity-status',
   GET_RECENT_ACTIVITY: 'get-recent-activity',
-  UPDATE_MONITORING_CONFIG: 'update-monitoring-config'
+  UPDATE_MONITORING_CONFIG: 'update-monitoring-config',
+  
+  // LLM Focus Notifications
+  FOCUS_NOTIFICATION: 'focus-notification',
+  SET_LLM_API_KEY: 'set-llm-api-key',
+  GET_LLM_STATUS: 'get-llm-status'
 } as const;
