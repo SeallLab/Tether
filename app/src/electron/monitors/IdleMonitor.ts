@@ -4,19 +4,18 @@ import { ActivityType, IdleData } from '../../shared/types.js';
 
 export class IdleMonitor extends BaseMonitor {
   private idleThreshold: number;
-  private lastActivityTime: number;
   private wasIdle: boolean = false;
+  private checkInterval: NodeJS.Timeout | null = null;
 
-  constructor(logger: any, idleThreshold: number = 300) { // 5 minutes default
+  constructor(logger: any, idleThreshold: number = 300) { // 300 seconds (5 minutes) default
     super(logger);
     this.idleThreshold = idleThreshold;
-    this.lastActivityTime = Date.now();
   }
 
   public async start(): Promise<void> {
     if (this.isRunning) return;
 
-    console.log('[IdleMonitor] Starting idle monitoring...');
+    console.log(`[IdleMonitor] Starting idle monitoring with threshold: ${this.idleThreshold} seconds...`);
     this.isRunning = true;
 
     // Monitor for resume from suspend/sleep
@@ -24,13 +23,13 @@ export class IdleMonitor extends BaseMonitor {
       this.handleResume('unknown');
     });
 
-    // Check idle status every 30 seconds
-    this.setInterval(() => {
+    // Check idle status every 5 seconds using system idle time
+    this.checkInterval = setInterval(() => {
       this.checkIdleStatus();
-    }, 30000);
+    }, 5000);
 
-    // Listen for activity to reset idle timer
-    this.resetIdleTimer();
+    // Initial check
+    this.checkIdleStatus();
   }
 
   public async stop(): Promise<void> {
@@ -38,7 +37,12 @@ export class IdleMonitor extends BaseMonitor {
 
     console.log('[IdleMonitor] Stopping idle monitoring...');
     this.isRunning = false;
-    this.clearInterval();
+    
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+    
     powerMonitor.removeAllListeners('resume');
   }
 
@@ -47,34 +51,35 @@ export class IdleMonitor extends BaseMonitor {
   }
 
   private checkIdleStatus(): void {
-    const currentTime = Date.now();
-    const idleDuration = (currentTime - this.lastActivityTime) / 1000; // in seconds
+    try {
+      // Get system idle time in seconds
+      const systemIdleTime = powerMonitor.getSystemIdleTime();
+      
+      console.log(`[IdleMonitor] System idle time: ${systemIdleTime}s, threshold: ${this.idleThreshold}s`);
 
-    if (idleDuration >= this.idleThreshold && !this.wasIdle) {
-      // User just became idle
-      this.wasIdle = true;
-      this.logIdleEvent(idleDuration, true, 'unknown');
-    } else if (idleDuration < this.idleThreshold && this.wasIdle) {
-      // User resumed activity
-      this.wasIdle = false;
-      this.logIdleEvent(idleDuration, false, 'unknown');
-    }
-  }
-
-  private resetIdleTimer(): void {
-    this.lastActivityTime = Date.now();
-    if (this.wasIdle) {
-      this.wasIdle = false;
-      this.logIdleEvent(0, false, 'unknown');
+      if (systemIdleTime >= this.idleThreshold && !this.wasIdle) {
+        // User just became idle
+        console.log('[IdleMonitor] User became idle');
+        this.wasIdle = true;
+        this.logIdleEvent(systemIdleTime, true, 'unknown');
+      } else if (systemIdleTime < this.idleThreshold && this.wasIdle) {
+        // User resumed activity
+        console.log('[IdleMonitor] User resumed activity');
+        this.wasIdle = false;
+        this.logIdleEvent(systemIdleTime, false, 'unknown');
+      }
+    } catch (error) {
+      console.error('[IdleMonitor] Error checking idle status:', error);
     }
   }
 
   private handleResume(trigger: 'mouse' | 'keyboard' | 'unknown'): void {
-    const currentTime = Date.now();
-    const idleDuration = (currentTime - this.lastActivityTime) / 1000;
+    console.log('[IdleMonitor] System resumed from sleep');
     
-    this.logIdleEvent(idleDuration, false, trigger);
-    this.resetIdleTimer();
+    if (this.wasIdle) {
+      this.wasIdle = false;
+      this.logIdleEvent(0, false, trigger);
+    }
   }
 
   private logIdleEvent(duration: number, isIdle: boolean, trigger: 'mouse' | 'keyboard' | 'unknown'): void {
@@ -84,6 +89,7 @@ export class IdleMonitor extends BaseMonitor {
       resume_trigger: trigger
     };
 
+    console.log('[IdleMonitor] Logging idle event:', idleData);
     this.logger.log(ActivityType.IDLE, idleData);
   }
 
@@ -91,8 +97,6 @@ export class IdleMonitor extends BaseMonitor {
   public notifyActivity(trigger: 'mouse' | 'keyboard' | 'unknown' = 'unknown'): void {
     if (this.wasIdle) {
       this.handleResume(trigger);
-    } else {
-      this.resetIdleTimer();
     }
   }
 } 

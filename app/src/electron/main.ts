@@ -43,7 +43,11 @@ app.on("ready", async () => {
 
   // Initialize and start activity monitoring service automatically
   console.log('[Main] Initializing activity monitoring service...');
-  activityMonitoringService = new ActivityMonitoringService();
+  activityMonitoringService = new ActivityMonitoringService({
+    idle_threshold: 30, // 30 seconds for testing (instead of default 300)
+    idle_enabled: true,
+    window_enabled: true
+  });
   
   try {
     await activityMonitoringService.start();
