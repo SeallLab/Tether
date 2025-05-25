@@ -139,3 +139,4 @@ dist-electron
 .DS_Store
 
 .idea
+app/activity_logs/*

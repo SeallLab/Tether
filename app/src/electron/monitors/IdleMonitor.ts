@@ -54,7 +54,6 @@ export class IdleMonitor extends BaseMonitor {
     try {
       // Get system idle time in seconds
       const systemIdleTime = powerMonitor.getSystemIdleTime();
-      
       console.log(`[IdleMonitor] System idle time: ${systemIdleTime}s, threshold: ${this.idleThreshold}s`);
 
       if (systemIdleTime >= this.idleThreshold && !this.wasIdle) {
@@ -89,7 +88,6 @@ export class IdleMonitor extends BaseMonitor {
       resume_trigger: trigger
     };
 
-    console.log('[IdleMonitor] Logging idle event:', idleData);
     this.logger.log(ActivityType.IDLE, idleData);
   }
 

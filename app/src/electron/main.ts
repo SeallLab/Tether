@@ -46,7 +46,9 @@ app.on("ready", async () => {
   activityMonitoringService = new ActivityMonitoringService({
     idle_threshold: 30, // 30 seconds for testing (instead of default 300)
     idle_enabled: true,
-    window_enabled: true
+    window_enabled: true,
+    storage_path: path.join(__dirname, '..', '..', 'activity_logs'), // Store in app directory
+    log_batch_size: 10
   });
   
   try {
