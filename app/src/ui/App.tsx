@@ -1,7 +1,15 @@
 import './App.css'
 import { DevicePhoneMobileIcon, ChatBubbleLeftEllipsisIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { useActivityMonitoring } from './hooks/useActivityMonitoring'
+import { useEffect } from 'react'
 
 function App() {
+  const {  startMonitoring, stopMonitoring } = useActivityMonitoring()
+
+  useEffect(() => {
+    startMonitoring()
+  }, [])
+
   return (
     <div 
       className="dock-container"
