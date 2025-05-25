@@ -137,3 +137,5 @@ dist-electron
 .pnp.*
 
 .DS_Store
+
+.idea
