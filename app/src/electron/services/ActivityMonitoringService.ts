@@ -6,6 +6,7 @@ import { BaseMonitor } from '../monitors/BaseMonitor.js';
 import { IdleMonitor } from '../monitors/IdleMonitor.js';
 import { WindowMonitor } from '../monitors/WindowMonitor.js';
 import { LLMService, createLLMService } from './LLMService.js';
+import { NotificationService } from './NotificationService.js';
 import { MonitoringConfig, ActivityType, FocusNotificationData } from '../../shared/types.js';
 import { IPC_CHANNELS } from '../../shared/constants.js';
 
@@ -15,6 +16,7 @@ export class ActivityMonitoringService {
   private config: MonitoringConfig;
   private isStarted: boolean = false;
   private llmService: LLMService | null = null;
+  private notificationService: NotificationService;
   private lastIdleNotification: number = 0;
 
   constructor(config?: Partial<MonitoringConfig>) {
@@ -37,6 +39,9 @@ export class ActivityMonitoringService {
       this.config.storage_path,
       this.config.log_batch_size
     );
+
+    // Initialize notification service
+    this.notificationService = new NotificationService();
 
     this.initializeMonitors();
   }
@@ -75,6 +80,9 @@ export class ActivityMonitoringService {
     try {
       // Request necessary permissions
       await this.requestPermissions();
+
+      // Request notification permissions
+      await this.notificationService.requestPermissions();
 
       // Start all enabled monitors
       const startPromises = Array.from(this.monitors.values()).map(monitor => 
@@ -200,7 +208,7 @@ export class ActivityMonitoringService {
       // Analyze focus loss with LLM
       const llmResponse = await this.llmService.analyzeFocusLoss(duration, todayLogs);
       
-      if (llmResponse.should_notify) {
+      if (!llmResponse.should_notify) {
         this.lastIdleNotification = now;
         
         // Create focus notification log entry
@@ -221,7 +229,7 @@ export class ActivityMonitoringService {
         this.logger.log(ActivityType.FOCUS_NOTIFICATION, focusNotification);
         
         // Send to UI via IPC
-        this.sendFocusNotificationToUI(llmResponse);
+        await this.sendFocusNotificationToUI(llmResponse);
         
         console.log('[ActivityMonitoringService] Focus notification sent:', llmResponse.message);
       } else {
@@ -233,8 +241,16 @@ export class ActivityMonitoringService {
     }
   }
 
-  private sendFocusNotificationToUI(llmResponse: any): void {
-    // Send to all windows (in case multiple are open)
+  private async sendFocusNotificationToUI(llmResponse: any): Promise<void> {
+    // Send system notification
+    try {
+      await this.notificationService.sendFocusNotification(llmResponse);
+      console.log('[ActivityMonitoringService] System notification sent successfully');
+    } catch (error) {
+      console.error('[ActivityMonitoringService] Failed to send system notification:', error);
+    }
+
+    // Send to UI via IPC (keep existing functionality)
     const allWindows = BrowserWindow.getAllWindows();
     allWindows.forEach((window: BrowserWindow) => {
       window.webContents.send(IPC_CHANNELS.FOCUS_NOTIFICATION, llmResponse);
