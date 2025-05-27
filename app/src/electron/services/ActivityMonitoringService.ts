@@ -208,7 +208,7 @@ export class ActivityMonitoringService {
       // Analyze focus loss with LLM
       const llmResponse = await this.llmService.analyzeFocusLoss(duration, todayLogs);
       
-      if (!llmResponse.should_notify) {
+      if (llmResponse.should_notify) {
         this.lastIdleNotification = now;
         
         // Create focus notification log entry
