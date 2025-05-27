@@ -17,11 +17,12 @@ dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 // Initialize the activity monitoring service
 let activityMonitoringService: ActivityMonitoringService;
+let mainWindow: BrowserWindow;
 
 app.on("ready", async () => {
-  const mainWindow = new BrowserWindow({
-    width: 60,
-    height: 200,
+  mainWindow = new BrowserWindow({
+    width: 55,
+    height: 115,
     frame: false,
     alwaysOnTop: true,
     transparent: true,
@@ -34,8 +35,52 @@ app.on("ready", async () => {
     }
   });
 
+  // Handle window.open requests
+  mainWindow.webContents.setWindowOpenHandler(({ url, features }) => {
+    console.log('[Main] Window open request:', { url, features });
+    
+    // Parse the features string to extract window options
+    const options: any = {};
+    if (features) {
+      features.split(',').forEach(feature => {
+        const [key, value] = feature.split('=');
+        if (key && value) {
+          // Convert string values to appropriate types
+          if (value === 'true') options[key] = true;
+          else if (value === 'false') options[key] = false;
+          else if (!isNaN(Number(value))) options[key] = Number(value);
+          else options[key] = value;
+        }
+      });
+    }
+
+    // Create BrowserWindow with the parsed options
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        width: options.width || 800,
+        height: options.height || 600,
+        x: options.x,
+        y: options.y,
+        alwaysOnTop: options.alwaysOnTop || false,
+        frame: options.frame !== false, // Default to true unless explicitly false
+        transparent: options.transparent || false,
+        resizable: options.resizable !== false, // Default to true unless explicitly false
+        center: options.center !== false, // Default to true unless explicitly false
+        title: options.title || 'Tether Settings',
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          preload: path.join(__dirname, 'preload.js')
+        }
+      }
+    };
+  });
+
   if (isDev()) {
     mainWindow.loadURL("http://localhost:3000");
+    // BRING BACK IF NEEDED: Open developer tools in development mode
+    // mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
   }
@@ -49,11 +94,11 @@ app.on("ready", async () => {
   // Initialize and start activity monitoring service automatically
   console.log('[Main] Initializing activity monitoring service...');
   activityMonitoringService = new ActivityMonitoringService({
-    idle_threshold: 10, // 10 seconds for testing (instead of default 300)
+    idle_threshold: 1000, // 10 seconds for testing (instead of default 300)
     idle_enabled: true,
     window_enabled: true,
     storage_path: path.join(__dirname, '..', '..', 'activity_logs'), // Store in app directory
-    log_batch_size: 10
+    log_batch_size: 100
   });
   
   try {
@@ -72,6 +117,25 @@ app.on("ready", async () => {
     console.log('[Main] LLM service initialized');
   } catch (error) {
     console.error('[Main] Failed to start activity monitoring:', error);
+  }
+});
+
+// Handle child window option updates
+ipcMain.on('update-child-window-options', (event, { windowId, options }) => {
+  console.log('[Main] Updating child window options:', { windowId, options });
+  // Find the window and update its options
+  const allWindows = BrowserWindow.getAllWindows();
+  const targetWindow = allWindows.find(win => win.webContents.id.toString() === windowId);
+  
+  if (targetWindow) {
+    // Update window properties that can be changed after creation
+    if (options.alwaysOnTop !== undefined) {
+      targetWindow.setAlwaysOnTop(options.alwaysOnTop);
+    }
+    if (options.title) {
+      targetWindow.setTitle(options.title);
+    }
+    // Add more updatable properties as needed
   }
 });
 

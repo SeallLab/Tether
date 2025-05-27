@@ -6,11 +6,9 @@ import { IPC_CHANNELS } from '../shared/constants.js';
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
     send: (channel: string, ...args: any[]) => {
-      console.log(`Preload sending message on channel: ${channel}`, args);
       ipcRenderer.send(channel, ...args);
     },
     invoke: (channel: string, ...args: any[]) => {
-      console.log(`Preload invoking on channel: ${channel}`, args);
       return ipcRenderer.invoke(channel, ...args);
     },
     on: (channel: string, listener: (...args: any[]) => void) => {

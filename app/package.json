@@ -18,10 +18,12 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@types/react-router-dom": "^5.3.3",
     "@types/uuid": "^10.0.0",
     "dotenv": "^16.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
