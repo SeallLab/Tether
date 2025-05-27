@@ -116,7 +116,7 @@ export class WindowMonitor extends BaseMonitor {
         application_name: appName || 'Unknown',
         window_title: windowTitle || 'No Window',
         process_name: processId || 'unknown',
-        window_bounds: undefined // Could be enhanced to get actual bounds
+        window_bounds: undefined // TODO: Get window bounds
       };
     } catch (error) {
       console.error('[WindowMonitor] macOS window detection failed:', error);
@@ -126,18 +126,92 @@ export class WindowMonitor extends BaseMonitor {
 
   private async getActiveWindowWindows(): Promise<WindowData | null> {
     try {
-      // For Windows, we'd need a different approach, potentially using PowerShell
-      const { stdout } = await execAsync(`
-        powershell "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SystemInformation]::ComputerName"
-      `);
+      // PowerShell script to get active window information
+      const script = `
+        Add-Type @"
+          using System;
+          using System.Runtime.InteropServices;
+          using System.Text;
+          public class Win32 {
+            [DllImport("user32.dll")]
+            public static extern IntPtr GetForegroundWindow();
+            
+            [DllImport("user32.dll")]
+            public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+            
+            [DllImport("user32.dll")]
+            public static extern int GetWindowTextLength(IntPtr hWnd);
+            
+            [DllImport("user32.dll")]
+            public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+          }
+"@
+
+        $hwnd = [Win32]::GetForegroundWindow()
+        
+        if ($hwnd -eq [IntPtr]::Zero) {
+          Write-Output "ERROR|No active window found"
+          exit
+        }
+        
+        # Get window title
+        $length = [Win32]::GetWindowTextLength($hwnd)
+        $sb = New-Object System.Text.StringBuilder($length + 1)
+        [Win32]::GetWindowText($hwnd, $sb, $sb.Capacity) | Out-Null
+        $windowTitle = $sb.ToString()
+        
+        # Get process information
+        $processId = 0
+        [Win32]::GetWindowThreadProcessId($hwnd, [ref]$processId) | Out-Null
+        
+        try {
+          $process = Get-Process -Id $processId -ErrorAction Stop
+          $appName = $process.ProcessName
+          $mainModule = $process.MainModule.ModuleName
+          
+          # Try to get a more user-friendly application name
+          $appDisplayName = $appName
+          try {
+            $fileInfo = Get-ItemProperty -Path $process.MainModule.FileName -ErrorAction Stop
+            if ($fileInfo.VersionInfo.ProductName) {
+              $appDisplayName = $fileInfo.VersionInfo.ProductName
+            } elseif ($fileInfo.VersionInfo.FileDescription) {
+              $appDisplayName = $fileInfo.VersionInfo.FileDescription
+            }
+          } catch {
+            # Fall back to process name if we can't get display name
+          }
+          
+          Write-Output "$appDisplayName|$windowTitle|$appName|$processId"
+        } catch {
+          Write-Output "Unknown App|$windowTitle|unknown|$processId"
+        }
+      `;
+
+      const { stdout } = await execAsync(`powershell -Command "${script.replace(/\n/g, ' ').replace(/"/g, '\\"')}"`);
       
-      // This is a simplified version - you'd want to implement proper Windows API calls
+      const output = stdout.trim();
+      
+      if (output.startsWith('ERROR|')) {
+        console.warn('[WindowMonitor] No active window found');
+        return null;
+      }
+      
+      const parts = output.split('|');
+      if (parts.length < 4) {
+        console.warn('[WindowMonitor] Unexpected PowerShell output format');
+        return null;
+      }
+      
+      const [appDisplayName, windowTitle, processName, processId] = parts;
+      
       return {
-        application_name: 'Windows App',
-        window_title: 'Windows Window',
-        process_name: 'unknown',
-        window_bounds: undefined
+        application_name: appDisplayName || 'Unknown',
+        window_title: windowTitle || 'No Window',
+        process_name: processName || 'unknown',
+        window_bounds: undefined // Could be implemented if needed
       };
+      
     } catch (error) {
       console.error('[WindowMonitor] Windows window detection failed:', error);
       return null;
