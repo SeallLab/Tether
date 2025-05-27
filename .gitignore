@@ -137,3 +137,6 @@ dist-electron
 .pnp.*
 
 .DS_Store
+
+.idea
+app/activity_logs/*
