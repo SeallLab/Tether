@@ -64,9 +64,8 @@ export class NotificationService {
 
     try {
       const options: NotificationConstructorOptions = {
-        title: 'Tether - Time to Focus!',
+        title: 'Time to Focus!',
         body: llmResponse.message,
-        icon: this.appIcon,
         silent: false,
         urgency: 'normal'
       };

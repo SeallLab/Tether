@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, globalShortcut } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -20,6 +20,8 @@ let activityMonitoringService: ActivityMonitoringService;
 let mainWindow: BrowserWindow;
 
 app.on("ready", async () => {
+  const preloadPath = path.join(__dirname, 'preload.js');
+  
   mainWindow = new BrowserWindow({
     width: 55,
     height: 115,
@@ -29,9 +31,9 @@ app.on("ready", async () => {
     resizable: false,
     skipTaskbar: true,
     webPreferences: {
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: preloadPath
     }
   });
 
@@ -71,7 +73,7 @@ app.on("ready", async () => {
         webPreferences: {
           nodeIntegration: false,
           contextIsolation: true,
-          preload: path.join(__dirname, 'preload.js')
+          preload: preloadPath
         }
       }
     };
@@ -79,8 +81,8 @@ app.on("ready", async () => {
 
   if (isDev()) {
     mainWindow.loadURL("http://localhost:3000");
-    // BRING BACK IF NEEDED: Open developer tools in development mode
-    // mainWindow.webContents.openDevTools();
+    // Enable developer tools in development mode to see console output
+    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
   }
@@ -91,14 +93,26 @@ app.on("ready", async () => {
     mainWindow.hide();
   });
 
+  // Register global keyboard shortcut for toggling dock
+  const shortcutRegistered = globalShortcut.register('CommandOrControl+Shift+D', () => {
+    console.log('[Main] Dock toggle shortcut pressed');
+    toggleDockVisibility();
+  });
+
+  if (!shortcutRegistered) {
+    console.error('[Main] Failed to register global shortcut for dock toggle');
+  } else {
+    console.log('[Main] Global shortcut registered: CommandOrControl+Shift+D');
+  }
+
   // Initialize and start activity monitoring service automatically
   console.log('[Main] Initializing activity monitoring service...');
   activityMonitoringService = new ActivityMonitoringService({
-    idle_threshold: 1000, // 10 seconds for testing (instead of default 300)
+    idle_threshold: 10, // 10 seconds for testing (instead of default 300)
     idle_enabled: true,
     window_enabled: true,
     storage_path: path.join(__dirname, '..', '..', 'activity_logs'), // Store in app directory
-    log_batch_size: 100
+    log_batch_size: 10
   });
   
   try {
@@ -119,6 +133,20 @@ app.on("ready", async () => {
     console.error('[Main] Failed to start activity monitoring:', error);
   }
 });
+
+// Function to toggle dock visibility
+function toggleDockVisibility() {
+  if (!mainWindow) return;
+  
+  if (mainWindow.isVisible()) {
+    console.log('[Main] Hiding dock');
+    mainWindow.hide();
+  } else {
+    console.log('[Main] Showing dock');
+    mainWindow.show();
+    mainWindow.focus();
+  }
+}
 
 // Handle child window option updates
 ipcMain.on('update-child-window-options', (event, { windowId, options }) => {
@@ -208,5 +236,29 @@ ipcMain.handle(IPC_CHANNELS.GET_LLM_STATUS, async () => {
   } catch (error) {
     console.error('[IPC] Get LLM status error:', error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// IPC handler for toggling dock visibility
+ipcMain.handle(IPC_CHANNELS.TOGGLE_DOCK, async () => {
+  try {
+    toggleDockVisibility();
+    return { success: true, visible: mainWindow?.isVisible() || false };
+  } catch (error) {
+    console.error('[IPC] Toggle dock error:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// Cleanup global shortcuts when app quits
+app.on('will-quit', () => {
+  console.log('[Main] Unregistering global shortcuts');
+  globalShortcut.unregisterAll();
+});
+
+// Handle app activation (macOS)
+app.on('activate', () => {
+  if (mainWindow) {
+    mainWindow.show();
   }
 });

@@ -11,5 +11,8 @@ export const IPC_CHANNELS = {
   // LLM Focus Notifications
   FOCUS_NOTIFICATION: 'focus-notification',
   SET_LLM_API_KEY: 'set-llm-api-key',
-  GET_LLM_STATUS: 'get-llm-status'
+  GET_LLM_STATUS: 'get-llm-status',
+  
+  // Dock Controls
+  TOGGLE_DOCK: 'toggle-dock'
 } as const;

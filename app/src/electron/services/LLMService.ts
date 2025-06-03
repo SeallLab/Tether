@@ -68,7 +68,7 @@ Analyze if this idle period represents a legitimate focus loss (not just a natur
 RESPOND WITH VALID JSON:
 {
   "should_notify": boolean,
-  "message": "Personalized, encouraging message to help them refocus (max 100 chars)",
+  "message": "Personalized, encouraging message to help them refocus (max 100 chars) include context into what they were working on before they were idle",
   "confidence": number (0-1),
   "reasoning": "Brief explanation of your decision"
 }

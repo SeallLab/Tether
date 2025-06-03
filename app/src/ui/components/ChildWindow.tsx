@@ -18,6 +18,53 @@ interface ChildWindowProps {
   };
 }
 
+// Utility function to copy styles from parent window to child window
+const copyStylesToWindow = (targetWindow: Window) => {
+  const parentDoc = document;
+  const childDoc = targetWindow.document;
+
+  // Copy all link elements (external stylesheets)
+  const linkElements = parentDoc.querySelectorAll('link[rel="stylesheet"]');
+  linkElements.forEach((link) => {
+    const newLink = childDoc.createElement('link');
+    newLink.rel = 'stylesheet';
+    newLink.href = (link as HTMLLinkElement).href;
+    newLink.type = 'text/css';
+    childDoc.head.appendChild(newLink);
+  });
+
+  // Copy all style elements (inline styles)
+  const styleElements = parentDoc.querySelectorAll('style');
+  styleElements.forEach((style) => {
+    const newStyle = childDoc.createElement('style');
+    newStyle.type = 'text/css';
+    if (style.textContent) {
+      newStyle.textContent = style.textContent;
+    }
+    childDoc.head.appendChild(newStyle);
+  });
+
+  // For Vite development, we might need to wait for styles to load
+  // and then copy them again
+  setTimeout(() => {
+    const additionalStyles = parentDoc.querySelectorAll('style');
+    additionalStyles.forEach((style) => {
+      // Check if this style is already copied
+      const existingStyles = Array.from(childDoc.querySelectorAll('style'));
+      const alreadyExists = existingStyles.some(existing => 
+        existing.textContent === style.textContent
+      );
+      
+      if (!alreadyExists && style.textContent) {
+        const newStyle = childDoc.createElement('style');
+        newStyle.type = 'text/css';
+        newStyle.textContent = style.textContent;
+        childDoc.head.appendChild(newStyle);
+      }
+    });
+  }, 100);
+};
+
 export const ChildWindow: React.FC<ChildWindowProps> = ({ 
   children, 
   onClosed, 
@@ -51,12 +98,28 @@ export const ChildWindow: React.FC<ChildWindowProps> = ({
         <html>
           <head>
             <title>${options.title || 'Settings'}</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
               body {
                 margin: 0;
                 padding: 0;
                 font-family: system-ui, -apple-system, sans-serif;
                 background-color: #f8f9fa;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
+                height: 100vh;
+                min-height: 100vh;
+              }
+              #root {
+                width: 100%;
+                height: 100vh;
+                min-height: 100vh;
+                border-radius: 8px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
               }
             </style>
           </head>
@@ -67,8 +130,13 @@ export const ChildWindow: React.FC<ChildWindowProps> = ({
       `);
       newWindow.document.close();
       
+      // Copy styles from parent window
+      copyStylesToWindow(newWindow);
+      
       // Wait for the window to be ready
       const handleLoad = () => {
+        // Copy styles again after load to ensure everything is captured
+        copyStylesToWindow(newWindow);
         setIsReady(true);
       };
       
