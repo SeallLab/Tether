@@ -1,34 +1,61 @@
 import './App.css'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChatBubbleLeftEllipsisIcon, Cog6ToothIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { ChildWindow } from './components/ChildWindow'
+import { ChatWindow } from './components/ChatWindow'
 import Settings from './Settings'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatContext, setChatContext] = useState<string>('general');
 
   const handleSettingsClick = () => {
-    setShowSettings(true);
+    if (showSettings) {
+      setShowSettings(false);
+    } else {
+      setShowSettings(true);
+    }
   };
 
   const handleSettingsClose = () => {
     setShowSettings(false);
   };
 
-  const handleToggleDock = async () => {
-    try {
-      const result = await window.electron.dock.toggle();
-      console.log('Dock toggle result:', result);
-    } catch (error) {
-      console.error('Failed to toggle dock:', error);
+  const handleChatClose = () => {
+    setShowChat(false);
+  };
+
+  const handleChatClick = () => {
+    if (showChat) {
+      setShowChat(false);
+    } else {
+      setChatContext('general');
+      setShowChat(true);
     }
   };
+
+  // Listen for IPC messages to show chat dialog
+  useEffect(() => {
+    const handleShowChatDialog = (context: string) => {
+      setChatContext(context);
+      setShowChat(true);
+    };
+
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.on('show-chat-dialog', handleShowChatDialog);
+      
+      return () => {
+        window.electron.ipcRenderer.removeListener('show-chat-dialog', handleShowChatDialog);
+      };
+    }
+  }, []);
 
   return (
     <>
       <div className="dock-container">
         <div className="dock-content">
-          <div className="dock-item">
+          <div className="dock-item" onClick={handleChatClick}>
             <ChatBubbleLeftEllipsisIcon />
           </div>
           <div className="dock-item" onClick={handleSettingsClick}>
@@ -51,6 +78,24 @@ function App() {
           }}
         >
           <Settings />
+        </ChildWindow>
+      )}
+
+      {showChat && (
+        <ChildWindow
+          onClosed={handleChatClose}
+          options={{
+            width: 600,
+            height: 500,
+            title: 'Tether Assistant',
+            center: true,
+            frame: false,
+            resizable: true,
+            alwaysOnTop: true,
+            transparent: true
+          }}
+        >
+          <ChatWindow context={chatContext} />
         </ChildWindow>
       )}
     </>

@@ -26,6 +26,10 @@ declare global {
       dock: {
         toggle: () => Promise<{ success: boolean; visible?: boolean; error?: string }>;
       };
+      chat: {
+        open: (context?: string) => Promise<{ success: boolean; error?: string }>;
+        showDailyPlanNotification: () => Promise<{ success: boolean; error?: string }>;
+      };
     }
   }
 } 

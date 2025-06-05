@@ -1,264 +1,45 @@
-import { app, BrowserWindow, ipcMain, globalShortcut } from "electron";
-import path from "path";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-import dotenv from "dotenv";
-import { isDev } from "./util.js";
-import { ActivityMonitoringService } from "./services/ActivityMonitoringService.js";
-import { IPC_CHANNELS } from "../shared/constants.js";
+import { app } from "electron";
+import { AppManager, WindowManager, NotificationManager } from './managers/index.js';
+import { setupActivityHandlers, setupLLMHandlers, setupWindowHandlers } from './handlers/index.js';
 
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Load environment variables from .env file
-// The .env file is in the app directory, so we go up 2 levels: dist-electron/electron -> dist-electron -> app
-dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
-
-// Initialize the activity monitoring service
-let activityMonitoringService: ActivityMonitoringService;
-let mainWindow: BrowserWindow;
+// Initialize managers
+const appManager = new AppManager();
+const windowManager = new WindowManager(appManager.getPreloadPath());
+const notificationManager = new NotificationManager(() => windowManager.getMainWindow());
 
 app.on("ready", async () => {
-  const preloadPath = path.join(__dirname, 'preload.js');
-  
-  mainWindow = new BrowserWindow({
-    width: 55,
-    height: 115,
-    frame: false,
-    alwaysOnTop: true,
-    transparent: true,
-    resizable: false,
-    skipTaskbar: true,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: true,
-      preload: preloadPath
-    }
+  console.log('[Main] App ready, initializing...');
+
+  // Create main window
+  const mainWindow = windowManager.createMainWindow();
+  console.log('[Main] Main window created');
+
+  // Start activity monitoring
+  await appManager.startActivityMonitoring();
+
+  // Setup global shortcuts
+  appManager.setupGlobalShortcuts(() => {
+    windowManager.toggleDockVisibility();
   });
 
-  // Handle window.open requests
-  mainWindow.webContents.setWindowOpenHandler(({ url, features }) => {
-    console.log('[Main] Window open request:', { url, features });
-    
-    // Parse the features string to extract window options
-    const options: any = {};
-    if (features) {
-      features.split(',').forEach(feature => {
-        const [key, value] = feature.split('=');
-        if (key && value) {
-          // Convert string values to appropriate types
-          if (value === 'true') options[key] = true;
-          else if (value === 'false') options[key] = false;
-          else if (!isNaN(Number(value))) options[key] = Number(value);
-          else options[key] = value;
-        }
-      });
-    }
+  // Setup IPC handlers
+  const activityService = appManager.getActivityMonitoringService();
+  setupActivityHandlers(activityService);
+  setupLLMHandlers(activityService);
+  setupWindowHandlers(
+    () => windowManager.getMainWindow(),
+    () => windowManager.toggleDockVisibility(),
+    () => notificationManager.showDailyPlanNotification()
+  );
 
-    // Create BrowserWindow with the parsed options
-    return {
-      action: 'allow',
-      overrideBrowserWindowOptions: {
-        width: options.width || 800,
-        height: options.height || 600,
-        x: options.x,
-        y: options.y,
-        alwaysOnTop: options.alwaysOnTop || false,
-        frame: options.frame !== false, // Default to true unless explicitly false
-        transparent: options.transparent || false,
-        resizable: options.resizable !== false, // Default to true unless explicitly false
-        center: options.center !== false, // Default to true unless explicitly false
-        title: options.title || 'Tether Settings',
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          preload: preloadPath
-        }
-      }
-    };
-  });
+  // Schedule startup notification (30 seconds after app starts)
+  notificationManager.scheduleStartupNotification(30000);
 
-  if (isDev()) {
-    mainWindow.loadURL("http://localhost:3000");
-    // Enable developer tools in development mode to see console output
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
-  }
-
-  // Prevent the window from being closed
-  mainWindow.on('close', (event) => {
-    event.preventDefault();
-    mainWindow.hide();
-  });
-
-  // Register global keyboard shortcut for toggling dock
-  const shortcutRegistered = globalShortcut.register('CommandOrControl+Shift+D', () => {
-    console.log('[Main] Dock toggle shortcut pressed');
-    toggleDockVisibility();
-  });
-
-  if (!shortcutRegistered) {
-    console.error('[Main] Failed to register global shortcut for dock toggle');
-  } else {
-    console.log('[Main] Global shortcut registered: CommandOrControl+Shift+D');
-  }
-
-  // Initialize and start activity monitoring service automatically
-  console.log('[Main] Initializing activity monitoring service...');
-  activityMonitoringService = new ActivityMonitoringService({
-    idle_threshold: 10, // 10 seconds for testing (instead of default 300)
-    idle_enabled: true,
-    window_enabled: true,
-    storage_path: path.join(__dirname, '..', '..', 'activity_logs'), // Store in app directory
-    log_batch_size: 10
-  });
-  
-  try {
-    await activityMonitoringService.start();
-    console.log('[Main] Activity monitoring started successfully');
-    
-    // Initialize LLM service
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (geminiApiKey) {
-      console.log('[Main] Found Gemini API key in environment, initializing with Gemini');
-      activityMonitoringService.initializeLLM(geminiApiKey);
-    } else {
-      console.log('[Main] No Gemini API key found, using mock provider');
-      activityMonitoringService.initializeLLM();
-    }
-    console.log('[Main] LLM service initialized');
-  } catch (error) {
-    console.error('[Main] Failed to start activity monitoring:', error);
-  }
+  console.log('[Main] App initialization complete');
 });
 
-// Function to toggle dock visibility
-function toggleDockVisibility() {
-  if (!mainWindow) return;
-  
-  if (mainWindow.isVisible()) {
-    console.log('[Main] Hiding dock');
-    mainWindow.hide();
-  } else {
-    console.log('[Main] Showing dock');
-    mainWindow.show();
-    mainWindow.focus();
-  }
-}
-
-// Handle child window option updates
-ipcMain.on('update-child-window-options', (event, { windowId, options }) => {
-  console.log('[Main] Updating child window options:', { windowId, options });
-  // Find the window and update its options
-  const allWindows = BrowserWindow.getAllWindows();
-  const targetWindow = allWindows.find(win => win.webContents.id.toString() === windowId);
-  
-  if (targetWindow) {
-    // Update window properties that can be changed after creation
-    if (options.alwaysOnTop !== undefined) {
-      targetWindow.setAlwaysOnTop(options.alwaysOnTop);
-    }
-    if (options.title) {
-      targetWindow.setTitle(options.title);
-    }
-    // Add more updatable properties as needed
-  }
-});
-
-// Set up IPC handlers for activity monitoring
-ipcMain.handle(IPC_CHANNELS.START_ACTIVITY_MONITORING, async () => {
-  try {
-    await activityMonitoringService.start();
-    return { success: true, data: activityMonitoringService.getStatus() };
-  } catch (error) {
-    console.error('[IPC] Start monitoring error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-ipcMain.handle(IPC_CHANNELS.STOP_ACTIVITY_MONITORING, async () => {
-  try {
-    await activityMonitoringService.stop();
-    return { success: true, data: activityMonitoringService.getStatus() };
-  } catch (error) {
-    console.error('[IPC] Stop monitoring error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-ipcMain.handle(IPC_CHANNELS.GET_ACTIVITY_STATUS, async () => {
-  try {
-    const status = activityMonitoringService.getStatus();
-    return { success: true, data: status };
-  } catch (error) {
-    console.error('[IPC] Get status error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-ipcMain.handle(IPC_CHANNELS.GET_RECENT_ACTIVITY, async (event, minutes = 60) => {
-  try {
-    const activity = await activityMonitoringService.getRecentActivity(minutes);
-    return { success: true, data: activity };
-  } catch (error) {
-    console.error('[IPC] Get recent activity error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-ipcMain.handle(IPC_CHANNELS.UPDATE_MONITORING_CONFIG, async (event, config) => {
-  try {
-    activityMonitoringService.updateConfig(config);
-    return { success: true, data: activityMonitoringService.getStatus() };
-  } catch (error) {
-    console.error('[IPC] Update config error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-// LLM Service IPC handlers
-ipcMain.handle(IPC_CHANNELS.SET_LLM_API_KEY, async (event, apiKey) => {
-  try {
-    activityMonitoringService.initializeLLM(apiKey);
-    return { success: true, data: activityMonitoringService.getLLMStatus() };
-  } catch (error) {
-    console.error('[IPC] Set LLM API key error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-ipcMain.handle(IPC_CHANNELS.GET_LLM_STATUS, async () => {
-  try {
-    const status = activityMonitoringService.getLLMStatus();
-    return { success: true, data: status };
-  } catch (error) {
-    console.error('[IPC] Get LLM status error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-// IPC handler for toggling dock visibility
-ipcMain.handle(IPC_CHANNELS.TOGGLE_DOCK, async () => {
-  try {
-    toggleDockVisibility();
-    return { success: true, visible: mainWindow?.isVisible() || false };
-  } catch (error) {
-    console.error('[IPC] Toggle dock error:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
-  }
-});
-
-// Cleanup global shortcuts when app quits
-app.on('will-quit', () => {
-  console.log('[Main] Unregistering global shortcuts');
-  globalShortcut.unregisterAll();
-});
-
-// Handle app activation (macOS)
-app.on('activate', () => {
-  if (mainWindow) {
-    mainWindow.show();
-  }
-});
+// Setup app event handlers
+appManager.setupAppEventHandlers(
+  () => windowManager.showMainWindow(),
+  () => notificationManager.clearStartupTimer()
+);

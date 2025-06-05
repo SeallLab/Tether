@@ -17,7 +17,11 @@ const IPC_CHANNELS = {
   GET_LLM_STATUS: 'get-llm-status',
   
   // Dock Controls
-  TOGGLE_DOCK: 'toggle-dock'
+  TOGGLE_DOCK: 'toggle-dock',
+  
+  // Chat Window
+  OPEN_CHAT_WINDOW: 'open-chat-window',
+  SHOW_DAILY_PLAN_NOTIFICATION: 'show-daily-plan-notification'
 } as const;
 
 // Expose protected methods that allow the renderer process to use
@@ -65,5 +69,11 @@ contextBridge.exposeInMainWorld('electron', {
   // Dock control API
   dock: {
     toggle: () => ipcRenderer.invoke(IPC_CHANNELS.TOGGLE_DOCK)
+  },
+
+  // Chat window API
+  chat: {
+    open: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_CHAT_WINDOW, context),
+    showDailyPlanNotification: () => ipcRenderer.invoke(IPC_CHANNELS.SHOW_DAILY_PLAN_NOTIFICATION)
   }
 });

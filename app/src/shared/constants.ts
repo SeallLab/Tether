@@ -14,5 +14,9 @@ export const IPC_CHANNELS = {
   GET_LLM_STATUS: 'get-llm-status',
   
   // Dock Controls
-  TOGGLE_DOCK: 'toggle-dock'
+  TOGGLE_DOCK: 'toggle-dock',
+  
+  // Chat Window
+  OPEN_CHAT_WINDOW: 'open-chat-window',
+  SHOW_DAILY_PLAN_NOTIFICATION: 'show-daily-plan-notification'
 } as const;
