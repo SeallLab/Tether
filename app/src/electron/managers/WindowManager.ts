@@ -28,7 +28,7 @@ export class WindowManager {
 
     this.setupMainWindowHandlers();
     this.loadMainWindow();
-
+    this.mainWindow.setOpacity(0.9);
     return this.mainWindow;
   }
 
@@ -55,26 +55,48 @@ export class WindowManager {
       }
 
       // Create BrowserWindow with the parsed options
-      return {
-        action: 'allow',
-        overrideBrowserWindowOptions: {
-          width: options.width || 800,
-          height: options.height || 600,
-          x: options.x,
-          y: options.y,
-          alwaysOnTop: options.alwaysOnTop || false,
-          frame: options.frame !== false, // Default to true unless explicitly false
-          transparent: options.transparent || false,
-          resizable: options.resizable !== false, // Default to true unless explicitly false
-          center: options.center !== false, // Default to true unless explicitly false
-          title: options.title || 'Tether Settings',
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            preload: this.preloadPath
-          }
+      const windowOptions = {
+        width: options.width || 800,
+        height: options.height || 600,
+        x: options.x,
+        y: options.y,
+        alwaysOnTop: options.alwaysOnTop || false,
+        frame: options.frame !== false, // Default to true unless explicitly false
+        transparent: options.transparent || false,
+        resizable: options.resizable !== false, // Default to true unless explicitly false
+        center: options.center !== false, // Default to true unless explicitly false
+        title: options.title || 'Tether Settings',
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          preload: this.preloadPath
         }
       };
+
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: windowOptions,
+        outlivesOpener: true
+      };
+    });
+
+    // Handle new window creation to set up event listeners
+    this.mainWindow.webContents.on('did-create-window', (childWindow, details) => {
+      console.log('[WindowManager] New window created:', details.url);
+      
+      // Check if this is a chat window (frameless and transparent)
+      // We can identify chat windows by checking the title
+      const isChatWindow = childWindow.getTitle() === 'Tether Assistant';
+      
+      if (isChatWindow) {
+        console.log('[WindowManager] Setting up chat window blur handler');
+        
+        // Close the chat window when it loses focus
+        childWindow.on('blur', () => {
+          console.log('[WindowManager] Chat window lost focus, closing');
+          childWindow.close();
+        });
+      }
     });
 
     // Prevent the window from being closed
@@ -90,7 +112,7 @@ export class WindowManager {
     if (isDev()) {
       this.mainWindow.loadURL("http://localhost:3000");
       // Enable developer tools in development mode to see console output
-      this.mainWindow.webContents.openDevTools();
+      // this.mainWindow.webContents.openDevTools();
     } else {
       this.mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
     }

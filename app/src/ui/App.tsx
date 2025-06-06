@@ -1,9 +1,9 @@
 import './App.css'
 import { useState, useEffect } from 'react'
-import { ChatBubbleLeftEllipsisIcon, Cog6ToothIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { ChatBubbleLeftEllipsisIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { ChildWindow } from './components/ChildWindow'
-import { ChatWindow } from './components/ChatWindow'
-import Settings from './Settings'
+import { ChatWindow } from './pages/ChatWindow'
+import Settings from './pages/Settings'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);
@@ -90,9 +90,9 @@ function App() {
             title: 'Tether Assistant',
             center: true,
             frame: false,
-            resizable: true,
+            resizable: false,
             alwaysOnTop: true,
-            transparent: true
+            transparent: true,
           }}
         >
           <ChatWindow context={chatContext} />

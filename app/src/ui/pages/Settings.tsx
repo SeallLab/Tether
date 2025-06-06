@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import './App.css'
-import { useActivityMonitoring } from './hooks/useActivityMonitoring'
+import '../App.css'
+import { useActivityMonitoring } from '../hooks/useActivityMonitoring'
 import { 
   ActivityMonitoringTab, 
   LLMAssistantTab, 
   GeneralTab, 
   AboutTab, 
   LoadingScreen 
-} from './components'
-import type { TabType, LLMStatus, MonitoringConfig } from './types/settings'
+} from '../components'
+import type { TabType, LLMStatus, MonitoringConfig } from '../types/settings'
 
 function Settings() {
   const [activeTab, setActiveTab] = useState<TabType>('activity');
@@ -174,22 +174,32 @@ function Settings() {
     <div className="w-full h-screen flex flex-col bg-gray-50 font-sans min-h-screen">
       {/* Tab Navigation */}
       <div className="bg-white border-b border-gray-200 px-8 flex-shrink-0">
-        <div className="flex space-x-0">
+        <nav className="flex space-x-8" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-4 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 bg-white ${
+              className={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-0 focus:border-none rounded-none ${
                 activeTab === tab.id
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-600 border-transparent hover:text-gray-900 hover:border-gray-300'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
+                outline: 'none',
+                boxShadow: 'none',
+                borderRadius: '0'
+              }}
             >
-              {tab.icon}
+              <span className={`mr-2 ${activeTab === tab.id ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'}`}>
+                {tab.icon}
+              </span>
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
-        </div>
+        </nav>
       </div>
 
       {/* Content */}

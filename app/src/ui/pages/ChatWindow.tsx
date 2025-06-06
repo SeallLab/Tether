@@ -82,9 +82,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
 
 
   return (
-    <div className="flex flex-col h-full bg-black backdrop-blur-xl rounded-xl shadow-2xl border border-white/20">
+    <div className="flex flex-col h-full bg-[#131e33] backdrop-blur-xl rounded-xl shadow-2xl border border-white/20">
       {/* Search Input */}
-      <div className="p-6 pb-4">
+      <div className="p-2 pb-4">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,9 +98,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder={context === 'daily-plan' ? "What's your plan for today?" : "Ask me anything..."}
-            className="w-full pl-12 pr-4 py-2 text-lg border border-slate-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 placeholder-slate-400"
+            className="outline-none w-full pl-12 pr-4 py-2 text-lg rounded-xl transition-all duration-200 placeholder-slate-400"
             disabled={isLoading}
           />
+          <div className="absolute bottom-0 left-0 w-full h-px bg-white/20"></div>
           {isLoading && (
             <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
               <div className="flex space-x-1">

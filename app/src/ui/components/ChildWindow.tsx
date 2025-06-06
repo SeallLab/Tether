@@ -97,7 +97,7 @@ export const ChildWindow: React.FC<ChildWindowProps> = ({
         <!DOCTYPE html>
         <html>
           <head>
-            <title>${options.title || 'Settings'}</title>
+            <title>${options.title}</title>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>

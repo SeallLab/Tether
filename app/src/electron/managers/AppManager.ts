@@ -28,7 +28,7 @@ export class AppManager {
     // Enable startup on system boot
     app.setLoginItemSettings({
       openAtLogin: true,
-      openAsHidden: true, // Start hidden on startup
+      openAsHidden: false,
       name: 'Tether',
       path: process.execPath
     });
@@ -36,7 +36,7 @@ export class AppManager {
 
   private initializeActivityMonitoring(): ActivityMonitoringService {
     return new ActivityMonitoringService({
-      idle_threshold: 10, // 10 seconds for testing (instead of default 300)
+      idle_threshold: 1200, // 20 minutes
       idle_enabled: true,
       window_enabled: true,
       storage_path: path.join(__dirname, '..', '..', '..', 'activity_logs'), // Store in app directory
