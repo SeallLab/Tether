@@ -109,4 +109,20 @@ export class IdleMonitor extends BaseMonitor {
       this.handleResume(trigger);
     }
   }
+
+  // Public method to update the idle threshold
+  public updateThreshold(newThreshold: number): void {
+    console.log(`[IdleMonitor] Updating idle threshold from ${this.idleThreshold}s to ${newThreshold}s`);
+    this.idleThreshold = newThreshold;
+    
+    // If we're currently running, log the change
+    if (this.isRunning) {
+      console.log(`[IdleMonitor] Idle threshold updated to ${this.idleThreshold} seconds while running`);
+    }
+  }
+
+  // Public method to get current threshold
+  public getThreshold(): number {
+    return this.idleThreshold;
+  }
 } 

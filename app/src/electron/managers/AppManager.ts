@@ -4,18 +4,30 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { ActivityMonitoringService } from '../services/ActivityMonitoringService.js';
+import { SettingsService } from '../services/SettingsService.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export class AppManager {
-  private activityMonitoringService: ActivityMonitoringService;
+  private activityMonitoringService!: ActivityMonitoringService;
+  private settingsService: SettingsService;
 
   constructor() {
     this.loadEnvironmentVariables();
+    this.settingsService = new SettingsService();
     this.setupStartupBehavior();
+  }
+
+  async initialize(): Promise<void> {
+    // Load settings first
+    await this.settingsService.load();
+    
+    // Initialize activity monitoring with loaded settings
     this.activityMonitoringService = this.initializeActivityMonitoring();
+    
+    console.log('[AppManager] Initialization complete');
   }
 
   private loadEnvironmentVariables(): void {
@@ -25,9 +37,13 @@ export class AppManager {
   }
 
   private setupStartupBehavior(): void {
+    // We'll update this to use settings later
+    const generalSettings = this.settingsService?.getGeneralSettings();
+    const startAtLogin = generalSettings?.startAtLogin ?? true;
+    
     // Enable startup on system boot
     app.setLoginItemSettings({
-      openAtLogin: true,
+      openAtLogin: startAtLogin,
       openAsHidden: false,
       name: 'Tether',
       path: process.execPath
@@ -35,13 +51,7 @@ export class AppManager {
   }
 
   private initializeActivityMonitoring(): ActivityMonitoringService {
-    return new ActivityMonitoringService({
-      idle_threshold: 1200, // 20 minutes
-      idle_enabled: true,
-      window_enabled: true,
-      storage_path: path.join(__dirname, '..', '..', '..', 'activity_logs'), // Store in app directory
-      log_batch_size: 10
-    });
+    return new ActivityMonitoringService(this.settingsService);
   }
 
   async startActivityMonitoring(): Promise<void> {
@@ -94,6 +104,10 @@ export class AppManager {
 
   getActivityMonitoringService(): ActivityMonitoringService {
     return this.activityMonitoringService;
+  }
+
+  getSettingsService(): SettingsService {
+    return this.settingsService;
   }
 
   getPreloadPath(): string {

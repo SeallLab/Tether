@@ -1,9 +1,9 @@
 import './App.css'
 import { useState, useEffect } from 'react'
 import { ChatBubbleLeftEllipsisIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { ChatWindow } from './pages/ChatWindow/ChatWindow'
 import { ChildWindow } from './components/ChildWindow'
-import { ChatWindow } from './pages/ChatWindow'
-import Settings from './pages/Settings'
+import Settings from './pages/Settings/Settings'
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);

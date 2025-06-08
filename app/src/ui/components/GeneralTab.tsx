@@ -1,26 +1,129 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Button, Card, StatusBadge } from './common';
 
 export function GeneralTab() {
+  const [settingsPath, setSettingsPath] = useState<string>('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+
+  useEffect(() => {
+    // Load settings path
+    const loadSettingsPath = async () => {
+      if (window.electron?.settings) {
+        try {
+          const result = await window.electron.settings.getPath();
+          if (result.success && result.data) {
+            setSettingsPath(result.data);
+          }
+        } catch (error) {
+          console.error('Failed to load settings path:', error);
+        }
+      }
+    };
+
+    loadSettingsPath();
+  }, []);
+
+  const handleResetSettings = async () => {
+    if (!window.electron?.settings) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to reset all settings to defaults? This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    setIsResetting(true);
+    setResetMessage('');
+
+    try {
+      const result = await window.electron.settings.reset();
+      if (result.success) {
+        setResetMessage('Settings reset successfully! Please restart the application for all changes to take effect.');
+      } else {
+        setResetMessage(`Failed to reset settings: ${result.error}`);
+      }
+    } catch (error) {
+      setResetMessage(`Error: ${error}`);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <h3 className="text-xl font-semibold text-gray-900 mb-6">
         General Settings
       </h3>
       
-      <div className="p-8 bg-white border border-gray-200 rounded-lg text-center">
-        <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+      {/* Settings Information */}
+      <Card title="Settings Information">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Settings File Location
+            </label>
+            <div className="p-3 bg-gray-50 rounded-md text-sm font-mono text-gray-700 break-all">
+              {settingsPath || 'Loading...'}
+            </div>
+            <div className="text-xs text-gray-600 mt-2">
+              Your settings are automatically saved to this file when you make changes.
+            </div>
+          </div>
         </div>
-        <h4 className="text-lg font-medium text-gray-900 mb-2">
-          General Preferences
-        </h4>
-        <p className="text-gray-600">
-          Additional general settings will be available here in future updates.
-        </p>
-      </div>
+      </Card>
+
+      {/* Reset Settings */}
+      <Card title="Reset Settings">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Reset all settings to their default values. This will clear all your customizations including:
+          </p>
+          <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+            <li>Activity monitoring configuration</li>
+            <li>AI assistant API key</li>
+            <li>UI preferences</li>
+            <li>General application settings</li>
+          </ul>
+          
+          <Button
+            variant="danger"
+            onClick={handleResetSettings}
+            isLoading={isResetting}
+          >
+            Reset All Settings
+          </Button>
+
+          {resetMessage && (
+            <StatusBadge
+              status={resetMessage.includes('successfully') ? 'success' : 'error'}
+              label={resetMessage.includes('successfully') ? 'Success' : 'Error'}
+              description={resetMessage}
+              size="sm"
+            />
+          )}
+        </div>
+      </Card>
+
+      {/* Application Info */}
+      <Card title="Application Information">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-900">Version</span>
+            <span className="text-sm text-gray-600">1.0.0</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-900">Platform</span>
+            <span className="text-sm text-gray-600">{navigator.platform}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-900">User Agent</span>
+            <span className="text-sm text-gray-600 truncate max-w-xs" title={navigator.userAgent}>
+              {navigator.userAgent.split(' ')[0]}
+            </span>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 } 
