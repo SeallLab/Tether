@@ -14,7 +14,8 @@ export enum ActivityType {
   WINDOW_CHANGE = 'window_change',
   APPLICATION_CHANGE = 'application_change',
   AMBIENT_NOISE = 'ambient_noise',
-  FOCUS_NOTIFICATION = 'focus_notification'
+  FOCUS_NOTIFICATION = 'focus_notification',
+  CHAT_INTERACTION = 'chat_interaction'
 }
 
 export interface TypingData {
@@ -72,7 +73,14 @@ export interface FocusNotificationData {
   };
 }
 
-export type ActivityData = TypingData | MouseData | IdleData | ScreenData | WindowData | AmbientNoiseData | FocusNotificationData;
+export interface ChatInteractionData {
+  sender: 'user' | 'assistant';
+  message: string;
+  sessionId: string;
+  messageId: string;
+}
+
+export type ActivityData = TypingData | MouseData | IdleData | ScreenData | WindowData | AmbientNoiseData | FocusNotificationData | ChatInteractionData;
 
 export interface MonitoringConfig {
   typing_enabled: boolean;
@@ -97,4 +105,34 @@ export interface LLMResponse {
 export interface LLMProvider {
   name: string;
   generateResponse(prompt: string): Promise<LLMResponse>;
+}
+
+// Chat-related types
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'assistant';
+  timestamp: number;
+  sessionId: string;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  context: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ChatRequest {
+  message: string;
+  sessionId?: string;
+  context?: string;
+}
+
+export interface ChatResponse {
+  message: string;
+  sessionId: string;
+  messageId: string;
 } 

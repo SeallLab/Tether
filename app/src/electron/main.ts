@@ -1,6 +1,6 @@
 import { app } from "electron";
 import { AppManager, WindowManager, NotificationManager } from './managers/index.js';
-import { setupActivityHandlers, setupLLMHandlers, setupWindowHandlers } from './handlers/index.js';
+import { setupActivityHandlers, setupLLMHandlers, setupWindowHandlers, setupChatHandlers } from './handlers/index.js';
 
 // Initialize managers
 const appManager = new AppManager();
@@ -24,8 +24,10 @@ app.on("ready", async () => {
 
   // Setup IPC handlers
   const activityService = appManager.getActivityMonitoringService();
+  const chatService = activityService.getChatService();
   setupActivityHandlers(activityService);
   setupLLMHandlers(activityService);
+  setupChatHandlers(chatService);
   setupWindowHandlers(
     () => windowManager.getMainWindow(),
     () => windowManager.toggleDockVisibility(),

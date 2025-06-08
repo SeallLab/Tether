@@ -11,6 +11,17 @@ export class GeminiProvider implements LLMProvider {
     this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   }
 
+  async generateChatResponse(prompt: string): Promise<string> {
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error('[GeminiProvider] Error generating chat response:', error);
+      throw error;
+    }
+  }
+
   async generateResponse(prompt: string): Promise<LLMResponse> {
     try {
       const result = await this.model.generateContent(prompt);

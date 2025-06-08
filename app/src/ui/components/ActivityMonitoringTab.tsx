@@ -202,7 +202,7 @@ export function ActivityMonitoringTab({
               type="text"
               value={status.config.storage_path || ''}
               onChange={(e) => onConfigChange('storage_path', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <div className="text-xs text-gray-600 mt-2">
               Directory where activity logs are stored

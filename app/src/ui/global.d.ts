@@ -27,6 +27,11 @@ declare global {
         toggle: () => Promise<{ success: boolean; visible?: boolean; error?: string }>;
       };
       chat: {
+        sendMessage: (request: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getSessions: () => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        getHistory: (sessionId: string) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        createSession: (context?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        deleteSession: (sessionId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         open: (context?: string) => Promise<{ success: boolean; error?: string }>;
         showDailyPlanNotification: () => Promise<{ success: boolean; error?: string }>;
       };

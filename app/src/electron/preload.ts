@@ -16,6 +16,13 @@ const IPC_CHANNELS = {
   SET_LLM_API_KEY: 'set-llm-api-key',
   GET_LLM_STATUS: 'get-llm-status',
   
+  // Chat functionality
+  SEND_CHAT_MESSAGE: 'send-chat-message',
+  GET_CHAT_SESSIONS: 'get-chat-sessions',
+  GET_CHAT_HISTORY: 'get-chat-history',
+  CREATE_CHAT_SESSION: 'create-chat-session',
+  DELETE_CHAT_SESSION: 'delete-chat-session',
+  
   // Dock Controls
   TOGGLE_DOCK: 'toggle-dock',
   
@@ -71,8 +78,13 @@ contextBridge.exposeInMainWorld('electron', {
     toggle: () => ipcRenderer.invoke(IPC_CHANNELS.TOGGLE_DOCK)
   },
 
-  // Chat window API
+  // Chat API
   chat: {
+    sendMessage: (request: any) => ipcRenderer.invoke(IPC_CHANNELS.SEND_CHAT_MESSAGE, request),
+    getSessions: () => ipcRenderer.invoke(IPC_CHANNELS.GET_CHAT_SESSIONS),
+    getHistory: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_CHAT_HISTORY, sessionId),
+    createSession: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_CHAT_SESSION, context),
+    deleteSession: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_CHAT_SESSION, sessionId),
     open: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_CHAT_WINDOW, context),
     showDailyPlanNotification: () => ipcRenderer.invoke(IPC_CHANNELS.SHOW_DAILY_PLAN_NOTIFICATION)
   }

@@ -74,7 +74,7 @@ function App() {
             center: true,
             frame: true,
             resizable: true,
-            alwaysOnTop: true
+            alwaysOnTop: false
           }}
         >
           <Settings />

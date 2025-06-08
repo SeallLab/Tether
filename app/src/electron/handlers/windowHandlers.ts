@@ -7,7 +7,7 @@ export function setupWindowHandlers(
   showDailyPlanNotification: () => void
 ) {
   // Handle child window option updates
-  ipcMain.on('update-child-window-options', (event, { windowId, options }) => {
+  ipcMain.on(IPC_CHANNELS.UPDATE_CHILD_WINDOW_OPTIONS, (event, { windowId, options }) => {
     console.log('[Main] Updating child window options:', { windowId, options });
     // Find the window and update its options
     const allWindows = BrowserWindow.getAllWindows();

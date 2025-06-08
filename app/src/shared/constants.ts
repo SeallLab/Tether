@@ -13,10 +13,20 @@ export const IPC_CHANNELS = {
   SET_LLM_API_KEY: 'set-llm-api-key',
   GET_LLM_STATUS: 'get-llm-status',
   
+  // Chat functionality
+  SEND_CHAT_MESSAGE: 'send-chat-message',
+  GET_CHAT_SESSIONS: 'get-chat-sessions',
+  GET_CHAT_HISTORY: 'get-chat-history',
+  CREATE_CHAT_SESSION: 'create-chat-session',
+  DELETE_CHAT_SESSION: 'delete-chat-session',
+  
   // Dock Controls
   TOGGLE_DOCK: 'toggle-dock',
   
   // Chat Window
   OPEN_CHAT_WINDOW: 'open-chat-window',
-  SHOW_DAILY_PLAN_NOTIFICATION: 'show-daily-plan-notification'
+  SHOW_DAILY_PLAN_NOTIFICATION: 'show-daily-plan-notification',
+
+  // Window Handlers
+  UPDATE_CHILD_WINDOW_OPTIONS: 'update-child-window-options',
 } as const;
