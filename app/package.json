@@ -20,13 +20,11 @@
     "@google/generative-ai": "^0.24.1",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "^4.1.8",
-    "@types/react-router-dom": "^5.3.3",
     "@types/uuid": "^10.0.0",
     "dotenv": "^16.5.0",
     "heroicons": "^2.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.1",
     "tailwindcss": "^4.1.8",
     "uuid": "^11.1.0"
   },
