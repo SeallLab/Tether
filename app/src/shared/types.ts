@@ -83,12 +83,9 @@ export interface ChatInteractionData {
 export type ActivityData = TypingData | MouseData | IdleData | ScreenData | WindowData | AmbientNoiseData | FocusNotificationData | ChatInteractionData;
 
 export interface MonitoringConfig {
-  typing_enabled: boolean;
-  mouse_enabled: boolean;
   idle_enabled: boolean;
   screen_enabled: boolean;
   window_enabled: boolean;
-  screenshot_interval: number; // in seconds
   idle_threshold: number; // in seconds
   log_batch_size: number;
   storage_path: string;

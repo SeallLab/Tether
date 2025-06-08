@@ -24,12 +24,9 @@ export class ActivityMonitoringService {
   constructor(config?: Partial<MonitoringConfig>) {
     // Default configuration
     this.config = {
-      typing_enabled: true,
-      mouse_enabled: true,
       idle_enabled: true,
       screen_enabled: false, // Disabled by default due to privacy concerns
       window_enabled: true,
-      screenshot_interval: 300, // 5 minutes
       idle_threshold: 300, // 5 minutes
       log_batch_size: 100,
       storage_path: path.join(os.homedir(), '.tether', 'activity_logs'),
@@ -156,9 +153,87 @@ export class ActivityMonitoringService {
     return await this.logger.getRecentLogs(minutes);
   }
 
-  public updateConfig(newConfig: Partial<MonitoringConfig>): void {
+  public async updateConfig(newConfig: Partial<MonitoringConfig>): Promise<void> {
+    const oldConfig = { ...this.config };
     this.config = { ...this.config, ...newConfig };
     console.log('[ActivityMonitoringService] Configuration updated:', newConfig);
+    
+    // Apply configuration changes to running monitors
+    await this.applyConfigChanges(oldConfig, this.config);
+  }
+
+  private async applyConfigChanges(oldConfig: MonitoringConfig, newConfig: MonitoringConfig): Promise<void> {
+    console.log('[ActivityMonitoringService] Applying configuration changes to monitors...');
+
+    // Handle idle monitor changes
+    if (oldConfig.idle_enabled !== newConfig.idle_enabled || 
+        oldConfig.idle_threshold !== newConfig.idle_threshold) {
+      
+      const idleMonitor = this.monitors.get('idle') as any; // Cast to access updateThreshold
+      
+      if (newConfig.idle_enabled && !oldConfig.idle_enabled) {
+        // Idle monitoring was enabled
+        console.log('[ActivityMonitoringService] Enabling idle monitoring');
+        if (!idleMonitor) {
+          // Create new idle monitor
+          const newIdleMonitor = new IdleMonitor(
+            this.logger, 
+            newConfig.idle_threshold
+          );
+          newIdleMonitor.onIdleStateChange = (isIdle: boolean, duration: number) => {
+            this.handleIdleStateChange(isIdle, duration);
+          };
+          this.monitors.set('idle', newIdleMonitor);
+          
+          // Start it if the service is running
+          if (this.isStarted) {
+            await newIdleMonitor.start();
+          }
+        }
+      } else if (!newConfig.idle_enabled && oldConfig.idle_enabled) {
+        // Idle monitoring was disabled
+        console.log('[ActivityMonitoringService] Disabling idle monitoring');
+        if (idleMonitor) {
+          await idleMonitor.stop();
+          this.monitors.delete('idle');
+        }
+      } else if (newConfig.idle_enabled && idleMonitor && 
+                 oldConfig.idle_threshold !== newConfig.idle_threshold) {
+        // Threshold changed for existing monitor
+        console.log(`[ActivityMonitoringService] Updating idle threshold from ${oldConfig.idle_threshold}s to ${newConfig.idle_threshold}s`);
+        if (idleMonitor.updateThreshold) {
+          idleMonitor.updateThreshold(newConfig.idle_threshold);
+        }
+      }
+    }
+
+    // Handle window monitor changes
+    if (oldConfig.window_enabled !== newConfig.window_enabled) {
+      const windowMonitor = this.monitors.get('window');
+      
+      if (newConfig.window_enabled && !oldConfig.window_enabled) {
+        // Window monitoring was enabled
+        console.log('[ActivityMonitoringService] Enabling window monitoring');
+        if (!windowMonitor) {
+          const newWindowMonitor = new WindowMonitor(this.logger);
+          this.monitors.set('window', newWindowMonitor);
+          
+          // Start it if the service is running
+          if (this.isStarted) {
+            await newWindowMonitor.start();
+          }
+        }
+      } else if (!newConfig.window_enabled && oldConfig.window_enabled) {
+        // Window monitoring was disabled
+        console.log('[ActivityMonitoringService] Disabling window monitoring');
+        if (windowMonitor) {
+          await windowMonitor.stop();
+          this.monitors.delete('window');
+        }
+      }
+    }
+
+    console.log('[ActivityMonitoringService] Configuration changes applied successfully');
   }
 
   private async requestPermissions(): Promise<void> {

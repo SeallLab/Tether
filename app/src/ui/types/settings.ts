@@ -1,14 +1,4 @@
-export interface MonitoringConfig {
-  typing_enabled: boolean;
-  mouse_enabled: boolean;
-  idle_enabled: boolean;
-  screen_enabled: boolean;
-  window_enabled: boolean;
-  screenshot_interval: number;
-  idle_threshold: number;
-  log_batch_size: number;
-  storage_path: string;
-}
+import type { MonitoringConfig } from '../../shared/types';
 
 export interface ActivityStatus {
   started: boolean;

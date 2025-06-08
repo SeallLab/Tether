@@ -46,7 +46,7 @@ export function setupActivityHandlers(activityMonitoringService: ActivityMonitor
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_MONITORING_CONFIG, async (event, config) => {
     try {
-      activityMonitoringService.updateConfig(config);
+      await activityMonitoringService.updateConfig(config);
       return { success: true, data: activityMonitoringService.getStatus() };
     } catch (error) {
       console.error('[IPC] Update config error:', error);
