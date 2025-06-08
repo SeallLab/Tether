@@ -245,8 +245,13 @@ Respond as Tether in a warm, understanding, and concise way:`;
     return session ? session.messages : [];
   }
 
-  deleteSession(sessionId: string): boolean {
-    return this.sessions.delete(sessionId);
+  async deleteSession(sessionId: string): Promise<boolean> {
+    const deleted = this.sessions.delete(sessionId);
+    if (deleted) {
+      // Save the updated sessions to disk
+      await this.saveChatHistory();
+    }
+    return deleted;
   }
 
   private async logChatInteraction(message: ChatMessage): Promise<void> {

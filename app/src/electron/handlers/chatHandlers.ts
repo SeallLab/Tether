@@ -51,7 +51,7 @@ export function setupChatHandlers(chatService: ChatService) {
   // Delete chat session
   ipcMain.handle(IPC_CHANNELS.DELETE_CHAT_SESSION, async (event, sessionId: string) => {
     try {
-      const deleted = chatService.deleteSession(sessionId);
+      const deleted = await chatService.deleteSession(sessionId);
       return { success: true, data: { deleted } };
     } catch (error) {
       console.error('[IPC] Delete chat session error:', error);
