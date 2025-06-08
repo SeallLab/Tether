@@ -9,6 +9,7 @@ import { LLMService, createLLMService } from './LLMService.js';
 import { NotificationService } from './NotificationService.js';
 import { ChatService } from './ChatService.js';
 import { SettingsService } from './SettingsService.js';
+import { WorkPatternAnalyzer } from './WorkPatternAnalyzer.js';
 import { MonitoringConfig, ActivityType, FocusNotificationData } from '../../shared/types.js';
 import { IPC_CHANNELS } from '../../shared/constants.js';
 
@@ -21,7 +22,10 @@ export class ActivityMonitoringService {
   private notificationService: NotificationService;
   private chatService: ChatService;
   public settingsService: SettingsService;
+  private workPatternAnalyzer: WorkPatternAnalyzer;
   private lastIdleNotification: number = 0;
+  private lastGoodJobNotification: number = 0;
+  private workCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(settingsService: SettingsService, config?: Partial<MonitoringConfig>) {
     this.settingsService = settingsService;
@@ -53,6 +57,9 @@ export class ActivityMonitoringService {
 
     // Initialize chat service
     this.chatService = new ChatService(this.logger);
+
+    // Initialize work pattern analyzer
+    this.workPatternAnalyzer = new WorkPatternAnalyzer();
 
     this.initializeMonitors();
     
@@ -110,6 +117,9 @@ export class ActivityMonitoringService {
       this.isStarted = true;
       console.log('[ActivityMonitoringService] Activity monitoring started successfully');
 
+      // Start work pattern monitoring (check every 5 minutes)
+      this.startWorkPatternMonitoring();
+
       // Set up cleanup on app quit
       app.on('before-quit', async () => {
         await this.stop();
@@ -135,6 +145,9 @@ export class ActivityMonitoringService {
       );
 
       await Promise.allSettled(stopPromises);
+
+      // Stop work pattern monitoring
+      this.stopWorkPatternMonitoring();
 
       // Cleanup logger
       await this.logger.cleanup();
@@ -439,6 +452,10 @@ export class ActivityMonitoringService {
     return this.chatService;
   }
 
+  public getNotificationService(): NotificationService {
+    return this.notificationService;
+  }
+
   private initializeLLMFromSettings(): void {
     if (this.settingsService.isSettingsLoaded()) {
       const llmSettings = this.settingsService.getLLMSettings();
@@ -449,6 +466,69 @@ export class ActivityMonitoringService {
         console.log('[ActivityMonitoringService] No saved API key, using mock provider');
         this.initializeLLM();
       }
+    }
+  }
+
+  private startWorkPatternMonitoring(): void {
+    // Check for consistent work every 5 minutes
+    this.workCheckInterval = setInterval(async () => {
+      await this.checkForConsistentWork();
+    }, 5 * 60 * 1000);
+
+    console.log('[ActivityMonitoringService] Work pattern monitoring started');
+  }
+
+  private stopWorkPatternMonitoring(): void {
+    if (this.workCheckInterval) {
+      clearInterval(this.workCheckInterval);
+      this.workCheckInterval = null;
+      console.log('[ActivityMonitoringService] Work pattern monitoring stopped');
+    }
+  }
+
+  private async checkForConsistentWork(): Promise<void> {
+    try {
+      // Get the idle threshold from config (this is our "consistent work" threshold)
+      const workThresholdMinutes = Math.floor(this.config.idle_threshold / 60);
+      
+      // Get recent logs for analysis
+      const recentLogs = await this.logger.getRecentLogs(workThresholdMinutes + 10);
+      
+      // Check if user has been consistently working
+      const workAnalysis = this.workPatternAnalyzer.hasBeenConsistentlyWorking(
+        recentLogs,
+        workThresholdMinutes,
+        5 // Max 5 minute idle gaps allowed
+      );
+
+      if (workAnalysis.isConsistent) {
+        // Prevent spam notifications (min 30 minutes between good job messages)
+        const now = Date.now();
+        if (now - this.lastGoodJobNotification < 30 * 60 * 1000) {
+          return;
+        }
+
+        console.log(`[ActivityMonitoringService] Consistent work detected: ${workAnalysis.workDuration} minutes on ${workAnalysis.primaryActivity}`);
+        
+        // Analyze work pattern for contextual message
+        const workPattern = this.workPatternAnalyzer.analyzeWorkPattern(recentLogs, workThresholdMinutes);
+        const encouragementMessage = this.workPatternAnalyzer.generateEncouragementMessage(
+          workPattern,
+          workAnalysis.workDuration
+        );
+
+        // Send good job notification
+        await this.notificationService.sendGoodJobNotification(
+          encouragementMessage,
+          workAnalysis.workDuration,
+          workAnalysis.primaryActivity
+        );
+
+        this.lastGoodJobNotification = now;
+        console.log('[ActivityMonitoringService] Good job notification sent:', encouragementMessage);
+      }
+    } catch (error) {
+      console.error('[ActivityMonitoringService] Error checking for consistent work:', error);
     }
   }
 } 

@@ -34,7 +34,11 @@ const IPC_CHANNELS = {
   
   // Chat Window
   OPEN_CHAT_WINDOW: 'open-chat-window',
-  SHOW_DAILY_PLAN_NOTIFICATION: 'show-daily-plan-notification'
+  SHOW_DAILY_PLAN_NOTIFICATION: 'show-daily-plan-notification',
+
+    // Notifications
+  GET_NOTIFICATION_STATS: 'get-notification-stats',
+  GET_RECENT_NOTIFICATIONS: 'get-recent-notifications',
 } as const;
 
 // Expose protected methods that allow the renderer process to use
@@ -101,5 +105,11 @@ contextBridge.exposeInMainWorld('electron', {
     deleteSession: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_CHAT_SESSION, sessionId),
     open: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_CHAT_WINDOW, context),
     showDailyPlanNotification: () => ipcRenderer.invoke(IPC_CHANNELS.SHOW_DAILY_PLAN_NOTIFICATION)
+  },
+
+  // Notifications API
+  notifications: {
+    getStats: () => ipcRenderer.invoke(IPC_CHANNELS.GET_NOTIFICATION_STATS),
+    getRecent: (minutes?: number) => ipcRenderer.invoke(IPC_CHANNELS.GET_RECENT_NOTIFICATIONS, minutes)
   }
 });

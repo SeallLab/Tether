@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { LLMResponse } from '../../shared/types.js';
+import { NotificationTracker, NotificationRecord } from './NotificationTracker.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -17,40 +18,18 @@ interface NotificationOptions {
 }
 
 export class NotificationService {
-  private appIcon: string;
   private isSupported: boolean;
+  private tracker: NotificationTracker;
 
   constructor() {
     this.isSupported = Notification.isSupported();
-    this.appIcon = this.resolveIconPath();
+    this.tracker = new NotificationTracker();
     
     if (!this.isSupported) {
       console.warn('[NotificationService] System notifications not supported on this platform');
     } else {
       console.log('[NotificationService] System notifications supported');
     }
-  }
-
-  private resolveIconPath(): string {
-    // Try to find app icon in different locations
-    const possiblePaths = [
-      path.join(app.getAppPath(), 'tether.png'),
-      path.join(app.getAppPath(), 'assets', 'icon.png'),
-      path.join(app.getAppPath(), 'dist', 'icon.png'),
-      path.join(__dirname, '..', '..', '..', 'tether.png')
-    ];
-
-    // Return the first existing path or undefined
-    for (const iconPath of possiblePaths) {
-      try {
-        // In a real implementation, you'd check if file exists
-        return iconPath;
-      } catch (error) {
-        continue;
-      }
-    }
-
-    return ''; // Fallback to system default
   }
 
   /**
@@ -62,6 +41,11 @@ export class NotificationService {
       return;
     }
 
+    // Check if we should send this notification
+    if (!this.tracker.shouldSendNotification('idle_warning', 10)) {
+      return;
+    }
+
     try {
       const options: NotificationConstructorOptions = {
         title: 'Time to Focus!',
@@ -70,7 +54,15 @@ export class NotificationService {
         urgency: 'normal'
       };
 
-      await this.sendNotification(options);
+      const notificationId = await this.tracker.recordNotification(
+        'idle_warning',
+        llmResponse.message,
+        {
+          trigger_reason: 'idle_threshold_reached'
+        }
+      );
+
+      await this.sendNotification(options, notificationId);
       console.log('[NotificationService] Focus notification sent successfully');
 
     } catch (error) {
@@ -81,13 +73,12 @@ export class NotificationService {
   /**
    * Send a custom notification
    */
-  public async sendNotification(options: NotificationConstructorOptions): Promise<void> {
+  public async sendNotification(options: NotificationConstructorOptions, notificationId?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const notification = new Notification({
           title: options.title,
           body: options.body,
-          icon: options.icon || this.appIcon,
           silent: options.silent || false,
           urgency: options.urgency || 'normal'
         });
@@ -99,11 +90,17 @@ export class NotificationService {
 
         notification.on('click', () => {
           console.log('[NotificationService] Notification clicked');
+          if (notificationId) {
+            this.tracker.recordInteraction(notificationId, { clicked: true });
+          }
           // You could add logic here to bring the app to focus
         });
 
         notification.on('close', () => {
           console.log('[NotificationService] Notification closed');
+          if (notificationId) {
+            this.tracker.recordInteraction(notificationId, { dismissed: true });
+          }
         });
 
         notification.on('failed', (error) => {
@@ -119,6 +116,50 @@ export class NotificationService {
         reject(error);
       }
     });
+  }
+
+  /**
+   * Send a "good job" encouragement notification
+   */
+  public async sendGoodJobNotification(
+    message: string,
+    workDuration: number,
+    recentActivity: string
+  ): Promise<void> {
+    if (!this.isSupported) {
+      console.warn('[NotificationService] Cannot send notification - not supported');
+      return;
+    }
+
+    // Check if we should send this notification (30 min cooldown for good job messages)
+    if (!this.tracker.shouldSendNotification('good_job', 30)) {
+      return;
+    }
+
+    try {
+      const options: NotificationConstructorOptions = {
+        title: 'Great Work! 🎉',
+        body: message,
+        silent: false,
+        urgency: 'low' // Less intrusive than focus warnings
+      };
+
+      const notificationId = await this.tracker.recordNotification(
+        'good_job',
+        message,
+        {
+          work_duration: workDuration,
+          recent_activity: recentActivity,
+          trigger_reason: 'consistent_work_detected'
+        }
+      );
+
+      await this.sendNotification(options, notificationId);
+      console.log('[NotificationService] Good job notification sent successfully');
+
+    } catch (error) {
+      console.error('[NotificationService] Failed to send good job notification:', error);
+    }
   }
 
   /**
@@ -144,5 +185,26 @@ export class NotificationService {
     }
     
     return true; // Other platforms don't require explicit permission requests
+  }
+
+  /**
+   * Get notification statistics
+   */
+  public getNotificationStats() {
+    return this.tracker.getStats();
+  }
+
+  /**
+   * Get recent notifications
+   */
+  public getRecentNotifications(minutes: number = 60) {
+    return this.tracker.getRecentNotifications(minutes);
+  }
+
+  /**
+   * Clean up old notification records
+   */
+  public async cleanupNotifications(): Promise<void> {
+    await this.tracker.cleanup();
   }
 } 

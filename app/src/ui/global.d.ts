@@ -41,6 +41,10 @@ declare global {
         open: (context?: string) => Promise<{ success: boolean; error?: string }>;
         showDailyPlanNotification: () => Promise<{ success: boolean; error?: string }>;
       };
+      notifications: {
+        getStats: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getRecent: (minutes?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+      };
     }
   }
 } 

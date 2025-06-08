@@ -13,6 +13,10 @@ export const IPC_CHANNELS = {
   UPDATE_SETTINGS: 'update-settings',
   RESET_SETTINGS: 'reset-settings',
   GET_SETTINGS_PATH: 'get-settings-path',
+
+  // Notifications
+  GET_NOTIFICATION_STATS: 'get-notification-stats',
+  GET_RECENT_NOTIFICATIONS: 'get-recent-notifications',
   
   // LLM Focus Notifications
   FOCUS_NOTIFICATION: 'focus-notification',
