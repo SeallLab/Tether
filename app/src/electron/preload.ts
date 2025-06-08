@@ -11,6 +11,12 @@ const IPC_CHANNELS = {
   GET_RECENT_ACTIVITY: 'get-recent-activity',
   UPDATE_MONITORING_CONFIG: 'update-monitoring-config',
   
+  // Settings Management
+  GET_SETTINGS: 'get-settings',
+  UPDATE_SETTINGS: 'update-settings',
+  RESET_SETTINGS: 'reset-settings',
+  GET_SETTINGS_PATH: 'get-settings-path',
+  
   // LLM Focus Notifications
   FOCUS_NOTIFICATION: 'focus-notification',
   SET_LLM_API_KEY: 'set-llm-api-key',
@@ -59,6 +65,14 @@ contextBridge.exposeInMainWorld('electron', {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_ACTIVITY_STATUS),
     getRecentActivity: (minutes?: number) => ipcRenderer.invoke(IPC_CHANNELS.GET_RECENT_ACTIVITY, minutes),
     updateConfig: (config: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_MONITORING_CONFIG, config)
+  },
+
+  // Settings API
+  settings: {
+    getAll: () => ipcRenderer.invoke(IPC_CHANNELS.GET_SETTINGS),
+    update: (section: string, settings: any) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_SETTINGS, { section, settings }),
+    reset: () => ipcRenderer.invoke(IPC_CHANNELS.RESET_SETTINGS),
+    getPath: () => ipcRenderer.invoke(IPC_CHANNELS.GET_SETTINGS_PATH)
   },
 
   // LLM service API

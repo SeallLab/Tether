@@ -8,6 +8,7 @@ import { WindowMonitor } from '../monitors/WindowMonitor.js';
 import { LLMService, createLLMService } from './LLMService.js';
 import { NotificationService } from './NotificationService.js';
 import { ChatService } from './ChatService.js';
+import { SettingsService } from './SettingsService.js';
 import { MonitoringConfig, ActivityType, FocusNotificationData } from '../../shared/types.js';
 import { IPC_CHANNELS } from '../../shared/constants.js';
 
@@ -19,19 +20,27 @@ export class ActivityMonitoringService {
   private llmService: LLMService | null = null;
   private notificationService: NotificationService;
   private chatService: ChatService;
+  public settingsService: SettingsService;
   private lastIdleNotification: number = 0;
 
-  constructor(config?: Partial<MonitoringConfig>) {
-    // Default configuration
-    this.config = {
-      idle_enabled: true,
-      screen_enabled: false, // Disabled by default due to privacy concerns
-      window_enabled: true,
-      idle_threshold: 300, // 5 minutes
-      log_batch_size: 100,
-      storage_path: path.join(os.homedir(), '.tether', 'activity_logs'),
-      ...config
-    };
+  constructor(settingsService: SettingsService, config?: Partial<MonitoringConfig>) {
+    this.settingsService = settingsService;
+    
+    // Load configuration from settings service or use provided config
+    if (settingsService.isSettingsLoaded()) {
+      this.config = settingsService.getMonitoringConfig();
+    } else {
+      // Fallback to provided config or defaults
+      this.config = {
+        idle_enabled: true,
+        screen_enabled: false,
+        window_enabled: true,
+        idle_threshold: 300,
+        log_batch_size: 100,
+        storage_path: path.join(os.homedir(), '.tether', 'activity_logs'),
+        ...config
+      };
+    }
 
     // Initialize logger
     this.logger = new ActivityLogger(
@@ -46,6 +55,9 @@ export class ActivityMonitoringService {
     this.chatService = new ChatService(this.logger);
 
     this.initializeMonitors();
+    
+    // Initialize LLM with saved settings
+    this.initializeLLMFromSettings();
   }
 
   private initializeMonitors(): void {
@@ -157,6 +169,14 @@ export class ActivityMonitoringService {
     const oldConfig = { ...this.config };
     this.config = { ...this.config, ...newConfig };
     console.log('[ActivityMonitoringService] Configuration updated:', newConfig);
+    
+    // Persist configuration changes
+    try {
+      await this.settingsService.updateMonitoringConfig(this.config);
+      console.log('[ActivityMonitoringService] Configuration persisted to disk');
+    } catch (error) {
+      console.error('[ActivityMonitoringService] Failed to persist configuration:', error);
+    }
     
     // Apply configuration changes to running monitors
     await this.applyConfigChanges(oldConfig, this.config);
@@ -417,5 +437,18 @@ export class ActivityMonitoringService {
 
   public getChatService(): ChatService {
     return this.chatService;
+  }
+
+  private initializeLLMFromSettings(): void {
+    if (this.settingsService.isSettingsLoaded()) {
+      const llmSettings = this.settingsService.getLLMSettings();
+      if (llmSettings.apiKey) {
+        console.log('[ActivityMonitoringService] Initializing LLM with saved API key');
+        this.initializeLLM(llmSettings.apiKey);
+      } else {
+        console.log('[ActivityMonitoringService] No saved API key, using mock provider');
+        this.initializeLLM();
+      }
+    }
   }
 } 

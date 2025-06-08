@@ -7,6 +7,16 @@ export function setupLLMHandlers(activityMonitoringService: ActivityMonitoringSe
   ipcMain.handle(IPC_CHANNELS.SET_LLM_API_KEY, async (event, apiKey) => {
     try {
       activityMonitoringService.initializeLLM(apiKey);
+      
+      // Persist the API key in settings
+      const settingsService = (activityMonitoringService).settingsService;
+      if (settingsService) {
+        await settingsService.updateLLMSettings({ 
+          apiKey: apiKey,
+          provider: 'gemini'
+        });
+      }
+      
       return { success: true, data: activityMonitoringService.getLLMStatus() };
     } catch (error) {
       console.error('[IPC] Set LLM API key error:', error);

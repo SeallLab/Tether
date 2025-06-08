@@ -8,6 +8,12 @@ export const IPC_CHANNELS = {
   GET_RECENT_ACTIVITY: 'get-recent-activity',
   UPDATE_MONITORING_CONFIG: 'update-monitoring-config',
   
+  // Settings Management
+  GET_SETTINGS: 'get-settings',
+  UPDATE_SETTINGS: 'update-settings',
+  RESET_SETTINGS: 'reset-settings',
+  GET_SETTINGS_PATH: 'get-settings-path',
+  
   // LLM Focus Notifications
   FOCUS_NOTIFICATION: 'focus-notification',
   SET_LLM_API_KEY: 'set-llm-api-key',
