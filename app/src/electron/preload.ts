@@ -1,23 +1,51 @@
-import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '../shared/constants.js';
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Inline constants to avoid ES6 import issues in preload script
+const IPC_CHANNELS = {
+  OPEN_SETTINGS_WINDOW: 'open-settings-window',
+  
+  // Activity Monitoring
+  START_ACTIVITY_MONITORING: 'start-activity-monitoring',
+  STOP_ACTIVITY_MONITORING: 'stop-activity-monitoring',
+  GET_ACTIVITY_STATUS: 'get-activity-status',
+  GET_RECENT_ACTIVITY: 'get-recent-activity',
+  UPDATE_MONITORING_CONFIG: 'update-monitoring-config',
+  
+  // LLM Focus Notifications
+  FOCUS_NOTIFICATION: 'focus-notification',
+  SET_LLM_API_KEY: 'set-llm-api-key',
+  GET_LLM_STATUS: 'get-llm-status',
+  
+  // Chat functionality
+  SEND_CHAT_MESSAGE: 'send-chat-message',
+  GET_CHAT_SESSIONS: 'get-chat-sessions',
+  GET_CHAT_HISTORY: 'get-chat-history',
+  CREATE_CHAT_SESSION: 'create-chat-session',
+  DELETE_CHAT_SESSION: 'delete-chat-session',
+  
+  // Dock Controls
+  TOGGLE_DOCK: 'toggle-dock',
+  
+  // Chat Window
+  OPEN_CHAT_WINDOW: 'open-chat-window',
+  SHOW_DAILY_PLAN_NOTIFICATION: 'show-daily-plan-notification'
+} as const;
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
     send: (channel: string, ...args: any[]) => {
-      console.log(`Preload sending message on channel: ${channel}`, args);
       ipcRenderer.send(channel, ...args);
     },
     invoke: (channel: string, ...args: any[]) => {
-      console.log(`Preload invoking on channel: ${channel}`, args);
       return ipcRenderer.invoke(channel, ...args);
     },
     on: (channel: string, listener: (...args: any[]) => void) => {
-      ipcRenderer.on(channel, (event, ...args) => listener(...args));
+      ipcRenderer.on(channel, (event: any, ...args: any[]) => listener(...args));
     },
     once: (channel: string, listener: (...args: any[]) => void) => {
-      ipcRenderer.once(channel, (event, ...args) => listener(...args));
+      ipcRenderer.once(channel, (event: any, ...args: any[]) => listener(...args));
     },
     removeListener: (channel: string, listener: (...args: any[]) => void) => {
       ipcRenderer.removeListener(channel, listener);
@@ -38,10 +66,26 @@ contextBridge.exposeInMainWorld('electron', {
     setApiKey: (apiKey: string) => ipcRenderer.invoke(IPC_CHANNELS.SET_LLM_API_KEY, apiKey),
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.GET_LLM_STATUS),
     onFocusNotification: (callback: (response: any) => void) => {
-      ipcRenderer.on(IPC_CHANNELS.FOCUS_NOTIFICATION, (event, data) => callback(data));
+      ipcRenderer.on(IPC_CHANNELS.FOCUS_NOTIFICATION, (event: any, data: any) => callback(data));
     },
     removeAllListeners: () => {
       ipcRenderer.removeAllListeners(IPC_CHANNELS.FOCUS_NOTIFICATION);
     }
+  },
+
+  // Dock control API
+  dock: {
+    toggle: () => ipcRenderer.invoke(IPC_CHANNELS.TOGGLE_DOCK)
+  },
+
+  // Chat API
+  chat: {
+    sendMessage: (request: any) => ipcRenderer.invoke(IPC_CHANNELS.SEND_CHAT_MESSAGE, request),
+    getSessions: () => ipcRenderer.invoke(IPC_CHANNELS.GET_CHAT_SESSIONS),
+    getHistory: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_CHAT_HISTORY, sessionId),
+    createSession: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_CHAT_SESSION, context),
+    deleteSession: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_CHAT_SESSION, sessionId),
+    open: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_CHAT_WINDOW, context),
+    showDailyPlanNotification: () => ipcRenderer.invoke(IPC_CHANNELS.SHOW_DAILY_PLAN_NOTIFICATION)
   }
-}); 
+});

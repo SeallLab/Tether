@@ -140,3 +140,4 @@ dist-electron
 
 .idea
 app/activity_logs/*
+app/chat_logs.json
