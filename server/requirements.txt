@@ -1,0 +1,13 @@
+flask
+flask-cors
+langchain
+langchain-community
+langchain-core
+langchain-google-genai
+langchain-text-splitters
+langgraph
+pypdf
+python-dotenv
+gunicorn
+faiss-cpu 
+langgraph.checkpoint.sqlite
