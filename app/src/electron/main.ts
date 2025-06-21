@@ -1,6 +1,6 @@
 import { app } from "electron";
 import { AppManager, WindowManager, NotificationManager } from './managers/index.js';
-import { setupActivityHandlers, setupLLMHandlers, setupWindowHandlers, setupChatHandlers, setupSettingsHandlers, setupNotificationHandlers } from './handlers/index.js';
+import { setupActivityHandlers, setupLLMHandlers, setupWindowHandlers, setupChatHandlers, setupSettingsHandlers, setupNotificationHandlers, setupPythonServerHandlers } from './handlers/index.js';
 
 // Initialize managers
 const appManager = new AppManager();
@@ -29,12 +29,14 @@ app.on("ready", async () => {
   const activityService = appManager.getActivityMonitoringService();
   const chatService = activityService.getChatService();
   const settingsService = appManager.getSettingsService();
+  const pythonServerService = appManager.getPythonServerService();
   
   setupActivityHandlers(activityService);
   setupLLMHandlers(activityService);
   setupChatHandlers(chatService);
   setupSettingsHandlers(settingsService);
   setupNotificationHandlers(activityService.getNotificationService());
+  setupPythonServerHandlers(pythonServerService);
   setupWindowHandlers(
     () => windowManager.getMainWindow(),
     () => windowManager.toggleDockVisibility(),

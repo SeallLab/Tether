@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { ActivityMonitoringService } from '../services/ActivityMonitoringService.js';
 import { SettingsService } from '../services/SettingsService.js';
+import { PythonServerService } from '../services/PythonServerService.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -13,16 +14,28 @@ const __dirname = dirname(__filename);
 export class AppManager {
   private activityMonitoringService!: ActivityMonitoringService;
   private settingsService: SettingsService;
+  private pythonServerService: PythonServerService;
 
   constructor() {
     this.loadEnvironmentVariables();
     this.settingsService = new SettingsService();
+    this.pythonServerService = new PythonServerService();
     this.setupStartupBehavior();
   }
 
   async initialize(): Promise<void> {
     // Load settings first
     await this.settingsService.load();
+    
+    // Initialize Python server service
+    try {
+      console.log('[AppManager] Starting Python server service...');
+      await this.pythonServerService.initialize();
+      console.log('[AppManager] Python server service started successfully');
+    } catch (error) {
+      console.error('[AppManager] Failed to start Python server service:', error);
+      // Continue without Python server for now
+    }
     
     // Initialize activity monitoring with loaded settings
     this.activityMonitoringService = this.initializeActivityMonitoring();
@@ -95,9 +108,17 @@ export class AppManager {
     });
 
     // Cleanup when app quits
-    app.on('will-quit', () => {
+    app.on('will-quit', async () => {
       console.log('[AppManager] Unregistering global shortcuts');
       globalShortcut.unregisterAll();
+      
+      // Shutdown Python server
+      try {
+        await this.pythonServerService.shutdown();
+      } catch (error) {
+        console.error('[AppManager] Error shutting down Python server:', error);
+      }
+      
       cleanup();
     });
   }
@@ -112,5 +133,9 @@ export class AppManager {
 
   getPreloadPath(): string {
     return path.join(__dirname, '..', 'preload.js');
+  }
+
+  getPythonServerService(): PythonServerService {
+    return this.pythonServerService;
   }
 } 

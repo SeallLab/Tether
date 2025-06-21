@@ -39,6 +39,12 @@ const IPC_CHANNELS = {
     // Notifications
   GET_NOTIFICATION_STATS: 'get-notification-stats',
   GET_RECENT_NOTIFICATIONS: 'get-recent-notifications',
+
+  // Python Server
+  PYTHON_SERVER_GET_STATUS: 'python-server:get-status',
+  PYTHON_SERVER_GET_URL: 'python-server:get-url',
+  PYTHON_SERVER_HEALTH_CHECK: 'python-server:health-check',
+  PYTHON_SERVER_API_REQUEST: 'python-server:api-request',
 } as const;
 
 // Expose protected methods that allow the renderer process to use
@@ -111,5 +117,14 @@ contextBridge.exposeInMainWorld('electron', {
   notifications: {
     getStats: () => ipcRenderer.invoke(IPC_CHANNELS.GET_NOTIFICATION_STATS),
     getRecent: (minutes?: number) => ipcRenderer.invoke(IPC_CHANNELS.GET_RECENT_NOTIFICATIONS, minutes)
+  },
+
+  // Python Server API
+  pythonServer: {
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.PYTHON_SERVER_GET_STATUS),
+    getUrl: () => ipcRenderer.invoke(IPC_CHANNELS.PYTHON_SERVER_GET_URL),
+    healthCheck: () => ipcRenderer.invoke(IPC_CHANNELS.PYTHON_SERVER_HEALTH_CHECK),
+    apiRequest: (method: string, endpoint: string, data?: any) => 
+      ipcRenderer.invoke(IPC_CHANNELS.PYTHON_SERVER_API_REQUEST, { method, endpoint, data })
   }
 });
