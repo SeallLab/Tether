@@ -41,6 +41,26 @@ declare global {
         open: (context?: string) => Promise<{ success: boolean; error?: string }>;
         showDailyPlanNotification: () => Promise<{ success: boolean; error?: string }>;
       };
+      notifications: {
+        getStats: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getRecent: (minutes?: number) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+      };
+      pythonServer: {
+        getStatus: () => Promise<{ 
+          isRunning: boolean; 
+          isIndexingComplete: boolean; 
+          serverUrl: string;
+          port: number;
+        }>;
+        getUrl: () => Promise<string>;
+        healthCheck: () => Promise<boolean>;
+        apiRequest: (method: string, endpoint: string, data?: any) => Promise<{
+          ok: boolean;
+          status: number;
+          data?: any;
+          error?: string;
+        }>;
+      };
     }
   }
 } 

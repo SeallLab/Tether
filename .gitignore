@@ -141,3 +141,8 @@ dist-electron
 .idea
 app/activity_logs/*
 app/chat_logs.json
+
+
+**/vector_store/**
+**/__pycache__/**
+**/venv/**
