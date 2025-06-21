@@ -25,9 +25,9 @@ def setup_environment():
     # Validate configuration
     try:
         app_config.validate()
-        print(f"✅ Configuration validated for {env} environment")
+        print(f"Configuration validated for {env} environment")
     except Exception as e:
-        print(f"❌ Configuration error: {e}")
+        print(f"Configuration error: {e}")
         sys.exit(1)
     
     return app_config

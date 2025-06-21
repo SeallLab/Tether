@@ -10,6 +10,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 interface PythonServerConfig {
+  googleApiKey: string;
+  flaskEnv: string;
   serverPort: number;
   pythonPath?: string;
   serverHost: string;
@@ -27,10 +29,12 @@ export class PythonServerService {
 
   constructor(config: Partial<PythonServerConfig> = {}) {
     this.config = {
-      serverPort: 5000,
+      serverPort: 5001,
       serverHost: '127.0.0.1',
       venvName: 'venv',
       pythonPath: 'python3',
+      flaskEnv: process.env.ENV || 'development',
+      googleApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
       ...config
     };
 
@@ -298,8 +302,8 @@ export class PythonServerService {
     return {
       FLASK_HOST: this.config.serverHost,
       FLASK_PORT: this.config.serverPort.toString(),
-      FLASK_ENV: 'production',
-      GOOGLE_API_KEY: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
+      FLASK_ENV: this.config.flaskEnv,
+      GOOGLE_API_KEY: this.config.googleApiKey,
       VECTOR_STORE_PATH: path.join(this.serverPath, 'vector_store'),
       DATABASE_PATH: path.join(this.serverPath, 'db', 'dev.db')
     };
