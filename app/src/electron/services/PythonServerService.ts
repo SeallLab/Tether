@@ -266,11 +266,27 @@ export class PythonServerService {
 
       this.flaskProcess!.stderr?.on('data', (data) => {
         const output = data.toString();
-        console.error('[PythonServerService] Flask error:', output.trim());
+        
+        // Check if this is a normal Flask access log (not an actual error)
+        const isAccessLog = output.includes(' - - [') && output.includes('] "') && output.includes(' HTTP/1.1" ');
+        const isFlaskStartupInfo = output.includes('* Serving Flask app') || 
+                                   output.includes('* Debug mode:') ||
+                                   output.includes('* Running on');
+        
+        if (isAccessLog || isFlaskStartupInfo) {
+          // This is normal Flask logging, log as info
+          console.log('[PythonServerService] Flask info:', output.trim());
+        } else {
+          // This is likely an actual error
+          console.error('[PythonServerService] Flask error:', output.trim());
+        }
         
         if (!serverStarted) {
-          cleanup();
-          reject(new Error(`Flask server failed to start: ${output}`));
+          // Only treat as startup error if it's not a normal log
+          if (!isAccessLog && !isFlaskStartupInfo) {
+            cleanup();
+            reject(new Error(`Flask server failed to start: ${output}`));
+          }
         }
       });
 
@@ -303,6 +319,7 @@ export class PythonServerService {
       FLASK_HOST: this.config.serverHost,
       FLASK_PORT: this.config.serverPort.toString(),
       FLASK_ENV: this.config.flaskEnv,
+      FLASK_DEBUG: 'false',
       GOOGLE_API_KEY: this.config.googleApiKey,
       VECTOR_STORE_PATH: path.join(this.serverPath, 'vector_store'),
       DATABASE_PATH: path.join(this.serverPath, 'db', 'dev.db')
@@ -371,6 +388,57 @@ export class PythonServerService {
     } catch (error) {
       console.error('[PythonServerService] Health check failed:', error);
       return false;
+    }
+  }
+
+  async apiRequest(method: string, endpoint: string, data?: any): Promise<{
+    ok: boolean;
+    status: number;
+    data?: any;
+    error?: string;
+  }> {
+    if (!this.isServerRunning) {
+      return {
+        ok: false,
+        status: 503,
+        error: 'Server not running'
+      };
+    }
+
+    try {
+      const url = `${this.getServerUrl()}${endpoint}`;
+      
+      // Use built-in fetch if available (Node.js 18+)
+      if (typeof fetch !== 'undefined') {
+        const options: RequestInit = {
+          method: method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+
+        if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+          options.body = JSON.stringify(data);
+        }
+
+        const response = await fetch(url, options);
+        const responseData = await response.json();
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          data: responseData
+        };
+      } else {
+        throw new Error('Fetch not available');
+      }
+    } catch (error) {
+      console.error('[PythonServerService] API request failed:', error);
+      return {
+        ok: false,
+        status: 500,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 } 

@@ -1,148 +1,70 @@
-import { ChatMessage, ChatSession, ChatRequest, ChatResponse, LLMProvider, ActivityType, ChatInteractionData } from '../../shared/types.js';
+import { ChatMessage, ChatSession, ChatRequest, ChatResponse } from '../../shared/types.js';
 import { ActivityLogger } from './ActivityLogger.js';
 import { v4 as uuidv4 } from 'uuid';
-import * as fs from 'fs';
-import * as path from 'path';
 
 export class ChatService {
-  private sessions: Map<string, ChatSession> = new Map();
-  private llmProvider: LLMProvider | null = null;
   private activityLogger: ActivityLogger;
-  private chatLogPath: string;
+  private pythonServerService: any; // Will be injected
 
-  constructor(activityLogger: ActivityLogger, chatLogPath?: string) {
+  constructor(activityLogger: ActivityLogger, pythonServerService?: any) {
     this.activityLogger = activityLogger;
-    this.chatLogPath = chatLogPath || path.join(process.cwd(), 'chat_logs.json');
-    this.loadChatHistory();
+    this.pythonServerService = pythonServerService;
   }
 
-  setLLMProvider(provider: LLMProvider): void {
-    this.llmProvider = provider;
+  setPythonServerService(pythonServerService: any): void {
+    this.pythonServerService = pythonServerService;
   }
 
   async sendMessage(request: ChatRequest): Promise<ChatResponse> {
-    const sessionId = request.sessionId || this.createNewSession(request.context || 'general');
-    const session = this.sessions.get(sessionId);
-    
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
-    // Create user message
-    const userMessage: ChatMessage = {
-      id: uuidv4(),
-      text: request.message,
-      sender: 'user',
-      timestamp: Date.now(),
-      sessionId
-    };
-
-    // Add user message to session
-    session.messages.push(userMessage);
-    session.updatedAt = Date.now();
-
-    // Log user message
-    await this.logChatInteraction(userMessage);
-
-    // Generate AI response
-    const aiResponse = await this.generateAIResponse(request.message, session);
-    
-    // Create assistant message
-    const assistantMessage: ChatMessage = {
-      id: uuidv4(),
-      text: aiResponse,
-      sender: 'assistant',
-      timestamp: Date.now(),
-      sessionId
-    };
-
-    // Add assistant message to session
-    session.messages.push(assistantMessage);
-    session.updatedAt = Date.now();
-
-    // Generate a meaningful title if this is the first user message
-    if (session.messages.filter(m => m.sender === 'user').length === 1) {
-      session.title = await this.generateSessionTitle(request.message, session.context);
-    }
-
-    // Log assistant message
-    await this.logChatInteraction(assistantMessage);
-
-    // Save chat history
-    await this.saveChatHistory();
-
-    return {
-      message: aiResponse,
-      sessionId,
-      messageId: assistantMessage.id
-    };
-  }
-
-  private async generateAIResponse(userMessage: string, session: ChatSession): Promise<string> {
-    if (!this.llmProvider) {
-      return this.getFallbackResponse(userMessage, session.context);
+    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
+      console.error('[ChatService] Python server service not properly initialized');
+      // Return fallback response
+      return {
+        message: this.getFallbackResponse(request.message, request.context || 'general'),
+        sessionId: request.sessionId || 'fallback',
+        messageId: 'fallback'
+      };
     }
 
     try {
-      const prompt = this.createADHDFocusedPrompt(userMessage, session);
+      let sessionId = request.sessionId;
       
-      // Use chat-specific method if available
-      if (typeof (this.llmProvider as any).generateChatResponse === 'function') {
-        return await (this.llmProvider as any).generateChatResponse(prompt);
+      // Create session if none provided
+      if (!sessionId) {
+        sessionId = await this.createNewSession(request.context || 'general');
       }
-      
-      // Fallback to regular response method
-      const response = await this.llmProvider.generateResponse(prompt);
-      
-      // Handle different response formats
-      if (typeof response === 'string') {
-        return response;
-      } else if (typeof response === 'object' && response.message) {
-        return response.message;
-      } else if (typeof response === 'object') {
-        // For focus notification responses, extract the message
-        return response.message || 'I understand! How can I help you stay focused today?';
+
+      // Send message to Flask API
+      const response = await this.pythonServerService.apiRequest('POST', '/generate', {
+        message: request.message,
+        session_id: sessionId
+      });
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to send message');
       }
-      
-      return this.getFallbackResponse(userMessage, session.context);
+
+      const data = response.data;
+      if (!data.success) {
+        throw new Error(data.error || 'API returned error');
+      }
+
+      return {
+        message: data.data.message,
+        sessionId: data.data.sessionId,
+        messageId: data.data.messageId
+      };
+
     } catch (error) {
-      console.error('[ChatService] Error generating AI response:', error);
-      return this.getFallbackResponse(userMessage, session.context);
+      console.error('[ChatService] Error sending message:', error);
+      
+      // Fallback response
+      return {
+        message: this.getFallbackResponse(request.message, request.context || 'general'),
+        sessionId: request.sessionId || 'fallback',
+        messageId: uuidv4()
+      };
     }
-  }
-
-  private createADHDFocusedPrompt(userMessage: string, session: ChatSession): string {
-    const recentMessages = session.messages.slice(-6); // Last 3 exchanges
-    const conversationHistory = recentMessages
-      .map(msg => `${msg.sender}: ${msg.text}`)
-      .join('\n');
-
-    return `You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive. 
-
-CORE PRINCIPLES:
-- Keep responses concise (2-3 sentences max)
-- Be encouraging and understanding, never judgmental
-- Focus on actionable, specific advice
-- Break down complex tasks into smaller steps
-- Acknowledge ADHD challenges (executive dysfunction, hyperfocus, time blindness)
-- Use positive, motivating language
-
-CONTEXT: ${session.context}
-
-CONVERSATION HISTORY:
-${conversationHistory}
-
-USER MESSAGE: ${userMessage}
-
-RESPONSE GUIDELINES:
-- If they're struggling with focus: Suggest specific techniques (Pomodoro, body doubling, etc.)
-- If they're overwhelmed: Help break tasks into smaller, manageable pieces
-- If they're procrastinating: Offer gentle accountability and starting strategies
-- If they're hyperfocusing: Remind them about breaks and self-care
-- If they're planning: Help prioritize and create realistic timelines
-- Always validate their experience and offer hope
-
-Respond as Tether in a warm, understanding, and concise way:`;
   }
 
   private getFallbackResponse(userMessage: string, context: string): string {
@@ -171,134 +93,112 @@ Respond as Tether in a warm, understanding, and concise way:`;
     return "I hear you! ADHD can make things challenging, but you've got this. What specific area would you like help with - focus, planning, or breaking down a task? 💙";
   }
 
-  createNewSession(context: string = 'general'): string {
-    const sessionId = uuidv4();
-    const session: ChatSession = {
-      id: sessionId,
-      title: this.generateTemporaryTitle(context),
-      context,
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-
-    this.sessions.set(sessionId, session);
-    return sessionId;
-  }
-
-  private generateTemporaryTitle(context: string): string {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    switch (context) {
-      case 'daily-plan':
-        return `Daily Planning - ${timeStr}`;
-      case 'focus-help':
-        return `Focus Session - ${timeStr}`;
-      default:
-        return `Chat - ${timeStr}`;
+  async createNewSession(context: string = 'general'): Promise<string> {
+    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
+      console.error('[ChatService] Python server service not properly initialized');
+      // Return a fallback session ID
+      return `fallback-${Date.now()}`;
     }
-  }
 
-  private async generateSessionTitle(userMessage: string, context: string): Promise<string> {
-    // Try to generate a meaningful title using LLM
-    if (this.llmProvider && typeof (this.llmProvider as any).generateChatResponse === 'function') {
-      try {
-        const titlePrompt = `Generate a very short (2-4 words) title for a chat session based on this user message: "${userMessage}". 
-        Context: ${context}. 
-        Examples: "Daily Planning", "Focus Help", "Task Breakdown", "Procrastination Support".
-        Only respond with the title, nothing else.`;
-        
-        const title = await (this.llmProvider as any).generateChatResponse(titlePrompt);
-        // Clean up the response and limit length
-        const cleanTitle = title.replace(/['"]/g, '').trim().substring(0, 30);
-        if (cleanTitle && cleanTitle.length > 3) {
-          return cleanTitle;
-        }
-      } catch (error) {
-        console.error('[ChatService] Error generating session title:', error);
+    try {
+      const response = await this.pythonServerService.apiRequest('POST', '/session', {
+        context: context
+      });
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to create session');
       }
-    }
-    
-    // Fallback to context-based titles
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    switch (context) {
-      case 'daily-plan':
-        return `Daily Planning - ${timeStr}`;
-      case 'focus-help':
-        return `Focus Session - ${timeStr}`;
-      default:
-        return `Chat - ${timeStr}`;
+
+      const data = response.data;
+      if (!data.success) {
+        throw new Error(data.error || 'API returned error');
+      }
+
+      return data.session_id;
+
+    } catch (error) {
+      console.error('[ChatService] Error creating session:', error);
+      // Return a fallback session ID
+      return `fallback-${uuidv4()}`;
     }
   }
 
-  getChatSessions(): ChatSession[] {
-    return Array.from(this.sessions.values())
-      .filter(session => session.messages.some(msg => msg.sender === 'user')) // Only sessions with user messages
-      .sort((a, b) => b.updatedAt - a.updatedAt);
+  async getChatSessions(): Promise<ChatSession[]> {
+    if (!this.pythonServerService) {
+      console.warn('[ChatService] Python server service not available, returning empty sessions');
+      return [];
+    }
+
+    if (typeof this.pythonServerService.apiRequest !== 'function') {
+      console.error('[ChatService] Python server service apiRequest method not available');
+      return [];
+    }
+
+    try {
+      const response = await this.pythonServerService.apiRequest('GET', '/sessions');
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to get sessions');
+      }
+
+      const data = response.data;
+      if (!data.success) {
+        throw new Error(data.error || 'API returned error');
+      }
+
+      return data.data || [];
+
+    } catch (error) {
+      console.error('[ChatService] Error getting sessions:', error);
+      return [];
+    }
   }
 
-  getChatHistory(sessionId: string): ChatMessage[] {
-    const session = this.sessions.get(sessionId);
-    return session ? session.messages : [];
+  async getChatHistory(sessionId: string): Promise<ChatMessage[]> {
+    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
+      console.warn('[ChatService] Python server service not available');
+      return [];
+    }
+
+    try {
+      const response = await this.pythonServerService.apiRequest('GET', `/conversation/${sessionId}`);
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to get chat history');
+      }
+
+      const data = response.data;
+      if (!data.success) {
+        throw new Error(data.error || 'API returned error');
+      }
+
+      return data.data || [];
+
+    } catch (error) {
+      console.error('[ChatService] Error getting chat history:', error);
+      return [];
+    }
   }
 
   async deleteSession(sessionId: string): Promise<boolean> {
-    const deleted = this.sessions.delete(sessionId);
-    if (deleted) {
-      // Save the updated sessions to disk
-      await this.saveChatHistory();
+    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
+      console.warn('[ChatService] Python server service not available');
+      return false;
     }
-    return deleted;
-  }
 
-  private async logChatInteraction(message: ChatMessage): Promise<void> {
     try {
-      // Log to activity logger
-      const chatData: ChatInteractionData = {
-        sender: message.sender,
-        message: message.text,
-        sessionId: message.sessionId,
-        messageId: message.id
-      };
-      
-      this.activityLogger.log(ActivityType.CHAT_INTERACTION, chatData);
-    } catch (error) {
-      console.error('[ChatService] Error logging chat interaction:', error);
-    }
-  }
+      const response = await this.pythonServerService.apiRequest('DELETE', `/conversation/${sessionId}`);
 
-  private async saveChatHistory(): Promise<void> {
-    try {
-      const sessionsArray = Array.from(this.sessions.values())
-        .filter(session => session.messages.some(msg => msg.sender === 'user')); // Only save sessions with user messages
-      await fs.promises.writeFile(
-        this.chatLogPath,
-        JSON.stringify(sessionsArray, null, 2),
-        'utf8'
-      );
-    } catch (error) {
-      console.error('[ChatService] Error saving chat history:', error);
-    }
-  }
-
-  private loadChatHistory(): void {
-    try {
-      if (fs.existsSync(this.chatLogPath)) {
-        const data = fs.readFileSync(this.chatLogPath, 'utf8');
-        const sessionsArray: ChatSession[] = JSON.parse(data);
-        
-        this.sessions.clear();
-        sessionsArray.forEach(session => {
-          this.sessions.set(session.id, session);
-        });
-        
-        console.log(`[ChatService] Loaded ${sessionsArray.length} chat sessions`);
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to delete session');
       }
+
+      const data = response.data;
+      return data.success || false;
+
     } catch (error) {
-      console.error('[ChatService] Error loading chat history:', error);
+      console.error('[ChatService] Error deleting session:', error);
+      return false;
     }
   }
 } 

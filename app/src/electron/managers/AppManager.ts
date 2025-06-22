@@ -40,6 +40,10 @@ export class AppManager {
     // Initialize activity monitoring with loaded settings
     this.activityMonitoringService = this.initializeActivityMonitoring();
     
+    // Inject Python server service into chat service after both are initialized
+    const chatService = this.activityMonitoringService.getChatService();
+    chatService.setPythonServerService(this.pythonServerService);
+    
     console.log('[AppManager] Initialization complete');
   }
 

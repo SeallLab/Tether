@@ -18,8 +18,10 @@ export function setupChatHandlers(chatService: ChatService) {
   // Get chat sessions
   ipcMain.handle(IPC_CHANNELS.GET_CHAT_SESSIONS, async () => {
     try {
-      const sessions = chatService.getChatSessions();
-      return { success: true, data: sessions };
+      const sessions = await chatService.getChatSessions();
+      // Ensure data is serializable by converting to plain objects
+      const serializedSessions = JSON.parse(JSON.stringify(sessions));
+      return { success: true, data: serializedSessions };
     } catch (error) {
       console.error('[IPC] Get chat sessions error:', error);
       return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -29,8 +31,10 @@ export function setupChatHandlers(chatService: ChatService) {
   // Get chat history for a specific session
   ipcMain.handle(IPC_CHANNELS.GET_CHAT_HISTORY, async (event, sessionId: string) => {
     try {
-      const history = chatService.getChatHistory(sessionId);
-      return { success: true, data: history };
+      const history = await chatService.getChatHistory(sessionId);
+      // Ensure data is serializable by converting to plain objects
+      const serializedHistory = JSON.parse(JSON.stringify(history));
+      return { success: true, data: serializedHistory };
     } catch (error) {
       console.error('[IPC] Get chat history error:', error);
       return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -40,7 +44,7 @@ export function setupChatHandlers(chatService: ChatService) {
   // Create new chat session
   ipcMain.handle(IPC_CHANNELS.CREATE_CHAT_SESSION, async (event, context?: string) => {
     try {
-      const sessionId = chatService.createNewSession(context);
+      const sessionId = await chatService.createNewSession(context);
       return { success: true, data: { sessionId } };
     } catch (error) {
       console.error('[IPC] Create chat session error:', error);

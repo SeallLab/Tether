@@ -34,14 +34,14 @@ export class ActivityMonitoringService {
     if (settingsService.isSettingsLoaded()) {
       this.config = settingsService.getMonitoringConfig();
     } else {
-      // Fallback to provided config or defaults
+      // Fallback to provided config or defaults - use consistent path with SettingsService
       this.config = {
         idle_enabled: true,
         screen_enabled: false,
         window_enabled: true,
         idle_threshold: 300,
         log_batch_size: 100,
-        storage_path: path.join(os.homedir(), '.tether', 'activity_logs'),
+        storage_path: path.join(app.getPath('userData'), 'activity_logs'),
         ...config
       };
     }
@@ -55,7 +55,7 @@ export class ActivityMonitoringService {
     // Initialize notification service
     this.notificationService = new NotificationService();
 
-    // Initialize chat service
+    // Initialize chat service (PythonServerService will be injected later)
     this.chatService = new ChatService(this.logger);
 
     // Initialize work pattern analyzer
@@ -409,32 +409,12 @@ export class ActivityMonitoringService {
         this.llmService = createLLMService(this.logger, 'mock');
         console.log('[ActivityMonitoringService] LLM service initialized with Mock provider');
       }
-
-      // Set the LLM provider for the chat service
-      if (this.llmService) {
-        const provider = this.llmService.getCurrentProvider();
-        // Get the actual provider instance from the LLM service
-        const llmProvider = (this.llmService as any).provider; // Access private provider
-        if (llmProvider) {
-          this.chatService.setLLMProvider(llmProvider);
-          console.log('[ActivityMonitoringService] Chat service LLM provider updated to:', provider);
-        }
-      }
     } catch (error) {
       console.error('[ActivityMonitoringService] Failed to initialize LLM service:', error);
       // Fallback to mock provider
       try {
         this.llmService = createLLMService(this.logger, 'mock');
         console.log('[ActivityMonitoringService] Fallback: LLM service initialized with Mock provider');
-        
-        // Set fallback provider for chat service
-        if (this.llmService) {
-          const llmProvider = (this.llmService as any).provider;
-          if (llmProvider) {
-            this.chatService.setLLMProvider(llmProvider);
-            console.log('[ActivityMonitoringService] Chat service fallback LLM provider set');
-          }
-        }
       } catch (fallbackError) {
         console.error('[ActivityMonitoringService] Failed to initialize fallback LLM service:', fallbackError);
       }
