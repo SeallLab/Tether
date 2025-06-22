@@ -105,6 +105,7 @@ def generate_response():
         
         message = data.get("message")
         session_id = data.get("session_id")
+        activity_context = data.get("activity_context", [])
         
         if not message:
             return jsonify({
@@ -118,8 +119,8 @@ def generate_response():
                 "error": "Session ID is required"
             }), 400
         
-        # Generate response
-        result = rag_service.generate_response(message, session_id)
+        # Generate response with activity context
+        result = rag_service.generate_response(message, session_id, activity_context)
         
         if result["success"]:
             # Format response for ChatService compatibility

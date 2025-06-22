@@ -34,10 +34,14 @@ export class ChatService {
         sessionId = await this.createNewSession(request.context || 'general');
       }
 
-      // Send message to Flask API
+      // Get recent activity logs for context (last 2 hours)
+      const recentLogs = await this.getRecentActivityContext();
+
+      // Send message to Flask API with activity context
       const response = await this.pythonServerService.apiRequest('POST', '/generate', {
         message: request.message,
-        session_id: sessionId
+        session_id: sessionId,
+        activity_context: recentLogs
       });
 
       if (!response.ok) {
@@ -199,6 +203,32 @@ export class ChatService {
     } catch (error) {
       console.error('[ChatService] Error deleting session:', error);
       return false;
+    }
+  }
+
+  private async getRecentActivityContext(): Promise<any[]> {
+    try {
+      // Get activity logs from the last 2 days
+      const twoDaysAgo = new Date(Date.now() - (2 * 24 * 60 * 60 * 1000));
+      const now = new Date();
+      
+      const logs = await this.activityLogger.getLogsByDateRange(twoDaysAgo, now);
+      
+      // Filter and summarize relevant activity
+      const relevantLogs = logs.filter(log => 
+        log.type === 'window_change' || log.type === 'idle'
+      ).map(log => ({
+        timestamp: log.timestamp,
+        type: log.type,
+        data: log.data
+      }));
+
+      console.log(`[ChatService] Providing ${relevantLogs.length} activity logs as context`);
+      return relevantLogs;
+      
+    } catch (error) {
+      console.error('[ChatService] Error getting activity context:', error);
+      return [];
     }
   }
 } 

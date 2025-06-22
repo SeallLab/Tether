@@ -34,6 +34,7 @@ class RAGService:
         self.llm = init_chat_model("gemini-2.0-flash", model_provider="google_genai")
         self.conversation_repo = ConversationRepository(db_path)
         self.db_path = db_path
+        self._current_activity_context = None
         
         # Load vector store
         self.load_vector_store(vector_store_path)
@@ -64,9 +65,14 @@ class RAGService:
         
         return retrieve
     
-    def _create_adhd_focused_prompt(self, docs_content: str) -> str:
-        """Create an ADHD-focused system prompt"""
-        return f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
+    def _create_adhd_focused_prompt(self, docs_content: str, activity_context: List[Dict] = None) -> str:
+        """Create an ADHD-focused system prompt with optional activity context"""
+        activity_summary = ""
+        
+        if activity_context and len(activity_context) > 0:
+            activity_summary = self._analyze_activity_context(activity_context)
+        
+        base_prompt = f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
 
 CORE PRINCIPLES:
 - Keep responses concise (2-3 sentences max)
@@ -84,10 +90,187 @@ RESPONSE GUIDELINES:
 - If they're planning: Help prioritize and create realistic timelines
 - Always validate their experience and offer hope
 
+IMPORTANT: You have access to the user's recent activity history and patterns. When they ask about what they were doing (yesterday, today, recently), use this information to provide specific answers.
+
 AVAILABLE CONTEXT:
 {docs_content}
 
-Use the retrieved context when relevant, but prioritize practical ADHD support. If the context doesn't contain relevant information, provide general ADHD-focused guidance. Respond as Tether in a warm, understanding, and concise way."""
+{activity_summary}
+
+Use the retrieved context and activity history when relevant. When asked about past activities, refer to the USER'S RECENT ACTIVITY HISTORY section above. Respond as Tether in a warm, understanding, and concise way."""
+        
+        return base_prompt
+    
+    def _analyze_activity_context(self, activity_logs: List[Dict]) -> str:
+        """Analyze activity logs to provide insights for the LLM"""
+        if not activity_logs:
+            return ""
+        
+        # Group activities by day
+        from datetime import datetime, timedelta
+        import time
+        
+        # Convert timestamps and group by day
+        activities_by_day = {}
+        app_switches = []
+        idle_periods = []
+        
+        for log in activity_logs:
+            timestamp = log.get('timestamp', 0)
+            if timestamp:
+                # Convert timestamp to date
+                dt = datetime.fromtimestamp(timestamp / 1000)  # Convert from milliseconds
+                day_key = dt.strftime('%Y-%m-%d')
+                
+                if day_key not in activities_by_day:
+                    activities_by_day[day_key] = {
+                        'window_changes': [],
+                        'idle_periods': [],
+                        'apps_used': set()
+                    }
+                
+                if log.get('type') == 'window_change':
+                    data = log.get('data', {})
+                    app_name = data.get('application_name', 'Unknown')
+                    window_title = data.get('window_title', '')
+                    
+                    activities_by_day[day_key]['window_changes'].append({
+                        'time': dt.strftime('%H:%M'),
+                        'app': app_name,
+                        'window': window_title
+                    })
+                    activities_by_day[day_key]['apps_used'].add(app_name)
+                    
+                    app_switches.append({
+                        'app': app_name,
+                        'time': timestamp
+                    })
+                    
+                elif log.get('type') == 'idle':
+                    data = log.get('data', {})
+                    idle_duration = data.get('idle_duration', 0)
+                    was_idle = data.get('was_idle', False)
+                    if was_idle and idle_duration > 60:  # More than 1 minute idle
+                        activities_by_day[day_key]['idle_periods'].append({
+                            'time': dt.strftime('%H:%M'),
+                            'duration': idle_duration
+                        })
+                        idle_periods.append(idle_duration)
+        
+        # Generate day summaries
+        day_summaries = []
+        today = datetime.now().strftime('%Y-%m-%d')
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        for day, activities in sorted(activities_by_day.items(), reverse=True):
+            if day == today:
+                day_label = "Today"
+            elif day == yesterday:
+                day_label = "Yesterday"
+            else:
+                day_label = day
+            
+            apps_used = list(activities['apps_used'])
+            window_changes = activities['window_changes']
+            
+            if apps_used:
+                # Get most used apps for the day
+                app_counts = {}
+                for change in window_changes:
+                    app = change['app']
+                    app_counts[app] = app_counts.get(app, 0) + 1
+                
+                top_apps = sorted(app_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+                app_summary = ", ".join([f"{app} ({count} times)" for app, count in top_apps])
+                
+                day_summaries.append(f"{day_label} ({day}): Used {app_summary}")
+                
+                # Add specific activities if it's yesterday and user is asking about it
+                if len(window_changes) > 0:
+                    first_activity = window_changes[0]['time']
+                    last_activity = window_changes[-1]['time']
+                    day_summaries.append(f"  - Active from {first_activity} to {last_activity}")
+                    
+                    # Show some specific windows/tasks
+                    interesting_windows = [w for w in window_changes if w['window'] and 'No Window' not in w['window']][:5]
+                    if interesting_windows:
+                        window_titles = [f"{w['time']}: {w['window']}" for w in interesting_windows]
+                        day_summaries.append(f"  - Key activities: {'; '.join(window_titles[:3])}")
+        
+        # Generate pattern insights
+        insights = []
+        
+        # App switching analysis
+        if len(app_switches) > 10:  # Many app switches
+            unique_apps = len(set(switch['app'] for switch in app_switches))
+            insights.append(f"High task switching detected: {len(app_switches)} app changes across {unique_apps} applications in recent days.")
+        
+        # Identify most used applications overall
+        if app_switches:
+            app_counts = {}
+            for switch in app_switches:
+                app = switch['app']
+                app_counts[app] = app_counts.get(app, 0) + 1
+            
+            most_used = max(app_counts.items(), key=lambda x: x[1])
+            if most_used[1] > 5:  # Used more than 5 times
+                insights.append(f"Most frequently used application: {most_used[0]} ({most_used[1]} interactions).")
+        
+        # Idle time analysis
+        if idle_periods:
+            total_idle = sum(idle_periods)
+            avg_idle = total_idle / len(idle_periods)
+            if avg_idle > 300:  # Average idle > 5 minutes
+                insights.append(f"Extended idle periods detected (avg {avg_idle/60:.1f} minutes).")
+        
+        # Task consistency analysis
+        if app_switches:
+            # Calculate time spent in different applications
+            app_durations = {}
+            current_time = None
+            current_app = None
+            
+            for switch in sorted(app_switches, key=lambda x: x['time']):
+                if current_app and current_time:
+                    duration = switch['time'] - current_time
+                    if duration > 0 and duration < 3600000:  # Less than 1 hour (in ms)
+                        app_durations[current_app] = app_durations.get(current_app, 0) + duration
+                
+                current_app = switch['app']
+                current_time = switch['time']
+            
+            # Identify potential focus sessions
+            focus_apps = {app: duration for app, duration in app_durations.items() 
+                         if duration > 600000}  # More than 10 minutes
+            
+            if focus_apps:
+                longest_focus = max(focus_apps.items(), key=lambda x: x[1])
+                focus_minutes = longest_focus[1] / 60000  # Convert to minutes
+                insights.append(f"Good focus session detected: {focus_minutes:.1f} minutes in {longest_focus[0]}.")
+        
+        # Context-aware suggestions
+        if len(app_switches) > 20:  # Very high task switching
+            insights.append("Consider using a focus technique like Pomodoro or time-blocking to reduce context switching.")
+        elif len(app_switches) < 3:  # Very low activity
+            insights.append("Low activity detected. If you're stuck, try the 2-minute rule or breaking tasks into smaller steps.")
+        
+        # Combine summaries and insights
+        result_parts = []
+        
+        if day_summaries:
+            result_parts.append("USER'S RECENT ACTIVITY HISTORY:")
+            result_parts.extend([f"- {summary}" for summary in day_summaries])
+            result_parts.append("")  # Empty line for separation
+        
+        if insights:
+            result_parts.append("ACTIVITY PATTERNS & INSIGHTS:")
+            result_parts.extend([f"- {insight}" for insight in insights])
+            result_parts.append("")  # Empty line for separation
+        
+        if result_parts:
+            return "\n" + "\n".join(result_parts)
+        
+        return ""
     
     def _setup_rag_graph(self):
         """Set up the RAG graph without persistence"""
@@ -99,9 +282,50 @@ Use the retrieved context when relevant, but prioritize practical ADHD support. 
         graph_builder = StateGraph(MessagesState)
         
         def query_or_respond(state: MessagesState):
-            """Generate tool call for retrieval or respond."""
+            """Generate tool call for retrieval or respond with activity context awareness."""
+            # Add activity context to system message if available
+            messages = state["messages"]
+            activity_context = getattr(self, '_current_activity_context', None)
+            
+            # Create an enhanced system message with activity context
+            if activity_context:
+                activity_summary = self._analyze_activity_context(activity_context)
+                enhanced_system_prompt = f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
+
+CORE PRINCIPLES:
+- Keep responses concise (2-3 sentences max)
+- Be encouraging and understanding, never judgmental
+- Focus on actionable, specific advice
+- Break down complex tasks into smaller steps
+- Acknowledge ADHD challenges (executive dysfunction, hyperfocus, time blindness)
+- Use positive, motivating language
+
+DECISION MAKING:
+- For questions about personal history, activities, or "what was I doing", use the USER'S ACTIVITY HISTORY below - DO NOT use the retrieve tool
+- For questions about ADHD strategies, techniques, or research, use the retrieve tool to get relevant information
+- For general conversation or support, you can respond directly or use retrieval if helpful
+
+{activity_summary}
+
+IMPORTANT: You have access to the user's recent activity history above. When they ask about what they were doing (yesterday, today, recently), use this information directly - don't search for it."""
+                
+                # Replace or add system message
+                enhanced_messages = []
+                system_added = False
+                for msg in messages:
+                    if msg.type == "system":
+                        enhanced_messages.append(SystemMessage(content=enhanced_system_prompt))
+                        system_added = True
+                    else:
+                        enhanced_messages.append(msg)
+                
+                if not system_added:
+                    enhanced_messages = [SystemMessage(content=enhanced_system_prompt)] + enhanced_messages
+                
+                messages = enhanced_messages
+            
             llm_with_tools = self.llm.bind_tools([retrieve_tool])
-            response = llm_with_tools.invoke(state["messages"])
+            response = llm_with_tools.invoke(messages)
             return {"messages": [response]}
         
         def generate(state: MessagesState):
@@ -115,9 +339,24 @@ Use the retrieved context when relevant, but prioritize practical ADHD support. 
                     break
             tool_messages = recent_tool_messages[::-1]
             
-            # Format into prompt
+            # Format into prompt with RAG content
             docs_content = "\n\n".join(doc.content for doc in tool_messages)
-            system_message_content = self._create_adhd_focused_prompt(docs_content)
+            
+            # Create focused prompt for RAG responses
+            system_message_content = f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
+
+CORE PRINCIPLES:
+- Keep responses concise (2-3 sentences max)
+- Be encouraging and understanding, never judgmental
+- Focus on actionable, specific advice
+- Break down complex tasks into smaller steps
+- Acknowledge ADHD challenges (executive dysfunction, hyperfocus, time blindness)
+- Use positive, motivating language
+
+RETRIEVED RESEARCH CONTEXT:
+{docs_content}
+
+Use the retrieved research context to provide evidence-based ADHD support and strategies. Respond as Tether in a warm, understanding, and concise way."""
             
             conversation_messages = [
                 message
@@ -154,8 +393,8 @@ Use the retrieved context when relevant, but prioritize practical ADHD support. 
         """Create a new conversation session"""
         return self.conversation_repo.create_session()
     
-    def generate_response(self, message: str, session_id: str) -> Dict[str, Any]:
-        """Generate a response for the given message and session"""
+    def generate_response(self, message: str, session_id: str, activity_context: List[Dict] = None) -> Dict[str, Any]:
+        """Generate a response for the given message and session with optional activity context"""
         try:
             # Get conversation history from our database
             history = self.get_conversation_history(session_id)
@@ -174,6 +413,9 @@ Use the retrieved context when relevant, but prioritize practical ADHD support. 
             
             # Store user message in database
             user_msg_id = self.conversation_repo.add_message_simple(session_id, "user", message)
+            
+            # Store activity context for this request
+            self._current_activity_context = activity_context
             
             # Run the graph
             result = None
