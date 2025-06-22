@@ -1,6 +1,10 @@
 import React from 'react';
 import { Button, Input, StatusBadge, Card } from '../../../components/common';
-import type { LLMStatus } from '../../../types/settings';
+
+interface LLMStatus {
+  enabled: boolean;
+  provider?: string;
+}
 
 interface LLMAssistantTabProps {
   llmStatus: LLMStatus | null;

@@ -9,6 +9,21 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [chatContext, setChatContext] = useState<string>('general');
+  const [currentTheme, setCurrentTheme] = useState<string>('default');
+
+  // Map theme IDs to CSS class names
+  const getThemeClassName = (themeId: string) => {
+    const themeMap: Record<string, string> = {
+      'default': 'theme-default',
+      'forest': 'theme-forest', 
+      'sunset': 'theme-sunset',
+      'royal': 'theme-royal',
+      'crimson': 'theme-crimson',
+      'galaxy': 'theme-galaxy',
+      'aurora': 'theme-aurora'
+    };
+    return themeMap[themeId] || '';
+  };
 
   const handleSettingsClick = () => {
     if (showSettings) {
@@ -35,6 +50,24 @@ function App() {
     }
   };
 
+  // Load initial theme from gamification data
+  useEffect(() => {
+    const loadInitialTheme = async () => {
+      if (window.electron?.gamification) {
+        try {
+          const result = await window.electron.gamification.getData();
+          if (result.success && result.data?.currentDockTheme) {
+            setCurrentTheme(result.data.currentDockTheme);
+          }
+        } catch (error) {
+          console.error('Failed to load initial theme:', error);
+        }
+      }
+    };
+
+    loadInitialTheme();
+  }, []);
+
   // Listen for IPC messages to show chat dialog
   useEffect(() => {
     const handleShowChatDialog = (context: string) => {
@@ -42,18 +75,32 @@ function App() {
       setShowChat(true);
     };
 
+    const handleShowRewardsDialog = () => {
+      // Open settings window and navigate to rewards tab
+      setShowSettings(true);
+      // We'll need to pass the initial tab to Settings component
+    };
+
+    const handleThemeChange = (themeId: string) => {
+      setCurrentTheme(themeId);
+    };
+
     if (window.electron?.ipcRenderer) {
       window.electron.ipcRenderer.on('show-chat-dialog', handleShowChatDialog);
+      window.electron.ipcRenderer.on('show-rewards-dialog', handleShowRewardsDialog);
+      window.electron.ipcRenderer.on('theme-changed', handleThemeChange);
       
       return () => {
         window.electron.ipcRenderer.removeListener('show-chat-dialog', handleShowChatDialog);
+        window.electron.ipcRenderer.removeListener('show-rewards-dialog', handleShowRewardsDialog);
+        window.electron.ipcRenderer.removeListener('theme-changed', handleThemeChange);
       };
     }
   }, []);
 
   return (
     <>
-      <div className="dock-container">
+      <div className={`dock-container ${getThemeClassName(currentTheme)}`}>
         <div className="dock-content">
           <div className="dock-item" onClick={handleChatClick}>
             <ChatBubbleLeftEllipsisIcon />
@@ -68,8 +115,8 @@ function App() {
         <ChildWindow
           onClosed={handleSettingsClose}
           options={{
-            width: 700,
-            height: 550,
+            width: 900,
+            height: 700,
             title: 'Settings',
             center: true,
             frame: true,

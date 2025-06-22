@@ -39,4 +39,15 @@ export const IPC_CHANNELS = {
 
   // Window Handlers
   UPDATE_CHILD_WINDOW_OPTIONS: 'update-child-window-options',
+  
+  // Gamification
+  GET_GAMIFICATION_DATA: 'get-gamification-data',
+  UPDATE_GAMIFICATION_DATA: 'update-gamification-data',
+  AWARD_POINTS: 'award-points',
+  UNLOCK_THEME: 'unlock-theme',
+  SET_DOCK_THEME: 'set-dock-theme',
+  COMPLETE_QUEST: 'complete-quest',
+  EARN_BADGE: 'earn-badge',
+  CHECK_FIRST_TIME_SETTINGS: 'check-first-time-settings',
+  POINT_EARNED_NOTIFICATION: 'point-earned-notification',
 } as const;

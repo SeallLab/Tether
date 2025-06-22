@@ -23,7 +23,7 @@ export function Input({
   className = '',
   ...props
 }: InputProps) {
-  const baseClasses = 'px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors';
+  const baseClasses = 'text-gray-900 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors';
   const variantClass = variantClasses[error ? 'error' : variant];
   const widthClass = fullWidth ? 'w-full' : '';
 

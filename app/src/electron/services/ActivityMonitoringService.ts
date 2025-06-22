@@ -10,6 +10,8 @@ import { NotificationService } from './NotificationService.js';
 import { ChatService } from './ChatService.js';
 import { SettingsService } from './SettingsService.js';
 import { WorkPatternAnalyzer } from './WorkPatternAnalyzer.js';
+import { GamificationService } from './GamificationService.js';
+import { FocusRewardService } from './FocusRewardService.js';
 import { MonitoringConfig, ActivityType, FocusNotificationData } from '../../shared/types.js';
 import { IPC_CHANNELS } from '../../shared/constants.js';
 
@@ -23,6 +25,8 @@ export class ActivityMonitoringService {
   private chatService: ChatService;
   public settingsService: SettingsService;
   private workPatternAnalyzer: WorkPatternAnalyzer;
+  private gamificationService: GamificationService;
+  private focusRewardService: FocusRewardService;
   private lastIdleNotification: number = 0;
   private lastGoodJobNotification: number = 0;
   private workCheckInterval: NodeJS.Timeout | null = null;
@@ -60,6 +64,16 @@ export class ActivityMonitoringService {
 
     // Initialize work pattern analyzer
     this.workPatternAnalyzer = new WorkPatternAnalyzer();
+
+    // Initialize gamification service
+    this.gamificationService = new GamificationService();
+
+    // Initialize focus reward service
+    this.focusRewardService = new FocusRewardService(
+      this.gamificationService,
+      this.notificationService,
+      this.logger
+    );
 
     this.initializeMonitors();
     
@@ -116,6 +130,12 @@ export class ActivityMonitoringService {
 
       this.isStarted = true;
       console.log('[ActivityMonitoringService] Activity monitoring started successfully');
+
+      // Load gamification data
+      await this.gamificationService.load();
+
+      // Start focus reward monitoring
+      await this.focusRewardService.startMonitoring();
 
       // Start work pattern monitoring (check every 5 minutes)
       this.startWorkPatternMonitoring();
@@ -434,6 +454,14 @@ export class ActivityMonitoringService {
 
   public getNotificationService(): NotificationService {
     return this.notificationService;
+  }
+
+  public getGamificationService(): GamificationService {
+    return this.gamificationService;
+  }
+
+  public getFocusRewardService(): FocusRewardService {
+    return this.focusRewardService;
   }
 
   private initializeLLMFromSettings(): void {

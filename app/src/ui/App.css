@@ -51,7 +51,7 @@ body,
   width: 100vw;
   height: 100vh;
   border-radius: 2px;
-  background: rgba(36, 57, 98, 0.4);
+  background: var(--dock-bg, rgba(36, 57, 98, 0.4));
   backdrop-filter: blur(12px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   border: none;
@@ -64,6 +64,46 @@ body,
   justify-content: space-around;
   padding: 0;
   margin: 0;
+  transition: background 0.3s ease;
+}
+
+/* Theme variations - matching backend theme IDs */
+.dock-container.theme-default {
+  background: rgba(36, 57, 98, 0.4);
+}
+
+.dock-container.theme-forest {
+  background: rgba(45, 80, 22, 0.4);
+}
+
+.dock-container.theme-sunset {
+  background: rgba(204, 102, 0, 0.4);
+}
+
+.dock-container.theme-royal {
+  background: rgba(106, 13, 173, 0.4);
+}
+
+.dock-container.theme-crimson {
+  background: rgba(220, 20, 60, 0.4);
+}
+
+.dock-container.theme-galaxy {
+  background: linear-gradient(45deg, 
+    rgba(75, 0, 130, 0.4), 
+    rgba(148, 0, 211, 0.4));
+}
+
+.dock-container.theme-aurora {
+  background: linear-gradient(120deg, 
+    rgba(0, 255, 136, 0.3), 
+    rgba(0, 136, 255, 0.3));
+  animation: aurora 8s ease-in-out infinite;
+}
+
+@keyframes aurora {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
 }
 
 .dock-content {
