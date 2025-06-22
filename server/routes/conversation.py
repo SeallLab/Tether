@@ -20,10 +20,21 @@ def get_conversation_history(session_id: str):
     
     try:
         history = rag_service.get_conversation_history(session_id)
+        
+        # Format messages for UI consumption
+        formatted_messages = []
+        for msg in history:
+            formatted_messages.append({
+                "id": str(msg.get("id", len(formatted_messages))),
+                "text": msg.get("content", ""),
+                "sender": "user" if msg.get("type") == "human" else "assistant",
+                "timestamp": msg.get("timestamp", 0),
+                "sessionId": session_id
+            })
+        
         return jsonify({
             "success": True,
-            "session_id": session_id,
-            "history": history
+            "data": formatted_messages
         }), 200
         
     except Exception as e:

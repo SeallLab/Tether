@@ -100,10 +100,38 @@ class ConversationRepository:
             )
             
             # Insert message
-            conn.execute(
+            cursor = conn.execute(
                 "INSERT INTO messages (session_id, message_type, content, metadata) VALUES (?, ?, ?, ?)",
                 (session_id, message_type, content, json.dumps(metadata) if metadata else None)
             )
+            return cursor.lastrowid
+    
+    def add_message_simple(self, session_id: str, message_type: str, content: str, metadata: Dict[str, Any] = None) -> int:
+        """Add a message to a session with simple parameters"""
+        # Validate message type
+        valid_types = ["human", "ai", "system", "tool", "user", "assistant"]
+        if message_type not in valid_types:
+            raise ValueError(f"Invalid message type: {message_type}. Must be one of {valid_types}")
+        
+        # Normalize message types
+        if message_type == "user":
+            message_type = "human"
+        elif message_type == "assistant":
+            message_type = "ai"
+        
+        with sqlite3.connect(self.db_path) as conn:
+            # Update session's updated_at timestamp
+            conn.execute(
+                "UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (session_id,)
+            )
+            
+            # Insert message
+            cursor = conn.execute(
+                "INSERT INTO messages (session_id, message_type, content, metadata) VALUES (?, ?, ?, ?)",
+                (session_id, message_type, content, json.dumps(metadata) if metadata else None)
+            )
+            return cursor.lastrowid
     
     def get_messages(self, session_id: str, limit: int = 100) -> List[BaseMessage]:
         """Get messages for a session"""

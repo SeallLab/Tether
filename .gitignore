@@ -146,3 +146,5 @@ app/chat_logs.json
 **/vector_store/**
 **/__pycache__/**
 **/venv/**
+
+/server/db/dev.db

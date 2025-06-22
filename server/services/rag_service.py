@@ -16,7 +16,6 @@ from langchain_community.vectorstores import FAISS
 from langchain.chat_models import init_chat_model
 from langgraph.graph import MessagesState, StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.checkpoint.sqlite import SqliteSaver
 from .conversation_repository import ConversationRepository
 
 
@@ -39,7 +38,7 @@ class RAGService:
         # Load vector store
         self.load_vector_store(vector_store_path)
         
-        # Initialize RAG graph
+        # Initialize RAG graph (without persistence for now)
         self._setup_rag_graph()
     
     def load_vector_store(self, file_path: str):
@@ -65,8 +64,33 @@ class RAGService:
         
         return retrieve
     
+    def _create_adhd_focused_prompt(self, docs_content: str) -> str:
+        """Create an ADHD-focused system prompt"""
+        return f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
+
+CORE PRINCIPLES:
+- Keep responses concise (2-3 sentences max)
+- Be encouraging and understanding, never judgmental
+- Focus on actionable, specific advice
+- Break down complex tasks into smaller steps
+- Acknowledge ADHD challenges (executive dysfunction, hyperfocus, time blindness)
+- Use positive, motivating language
+
+RESPONSE GUIDELINES:
+- If they're struggling with focus: Suggest specific techniques (Pomodoro, body doubling, etc.)
+- If they're overwhelmed: Help break tasks into smaller, manageable pieces
+- If they're procrastinating: Offer gentle accountability and starting strategies
+- If they're hyperfocusing: Remind them about breaks and self-care
+- If they're planning: Help prioritize and create realistic timelines
+- Always validate their experience and offer hope
+
+AVAILABLE CONTEXT:
+{docs_content}
+
+Use the retrieved context when relevant, but prioritize practical ADHD support. If the context doesn't contain relevant information, provide general ADHD-focused guidance. Respond as Tether in a warm, understanding, and concise way."""
+    
     def _setup_rag_graph(self):
-        """Set up the RAG graph with conversation history"""
+        """Set up the RAG graph without persistence"""
         
         # Create retrieve tool
         retrieve_tool = self._create_retrieve_tool()
@@ -93,15 +117,8 @@ class RAGService:
             
             # Format into prompt
             docs_content = "\n\n".join(doc.content for doc in tool_messages)
-            system_message_content = (
-                "You are an assistant for question-answering tasks. "
-                "Use the following pieces of retrieved context to answer "
-                "the question. If you don't know the answer, say that you "
-                "don't know. Use three sentences maximum and keep the "
-                "answer concise."
-                "\n\n"
-                f"{docs_content}"
-            )
+            system_message_content = self._create_adhd_focused_prompt(docs_content)
+            
             conversation_messages = [
                 message
                 for message in state["messages"]
@@ -130,9 +147,8 @@ class RAGService:
         graph_builder.add_edge("tools", "generate")
         graph_builder.add_edge("generate", END)
         
-        # Compile with SQLite persistence
-        memory = SqliteSaver.from_conn_string(f"sqlite:///{self.db_path}")
-        self.graph = graph_builder.compile(checkpointer=memory)
+        # Compile without persistence (we'll handle persistence manually)
+        self.graph = graph_builder.compile()
     
     def create_session(self) -> str:
         """Create a new conversation session"""
@@ -141,18 +157,29 @@ class RAGService:
     def generate_response(self, message: str, session_id: str) -> Dict[str, Any]:
         """Generate a response for the given message and session"""
         try:
-            # Configuration for the session
-            config = {"configurable": {"thread_id": session_id}}
+            # Get conversation history from our database
+            history = self.get_conversation_history(session_id)
             
-            # Create human message
-            human_message = HumanMessage(content=message)
+            # Convert history to LangChain messages
+            messages = []
+            for msg in history:
+                if msg["type"] == "human":
+                    messages.append(HumanMessage(content=msg["content"]))
+                elif msg["type"] == "ai":
+                    messages.append(AIMessage(content=msg["content"]))
+            
+            # Add the new user message
+            user_message = HumanMessage(content=message)
+            messages.append(user_message)
+            
+            # Store user message in database
+            user_msg_id = self.conversation_repo.add_message_simple(session_id, "user", message)
             
             # Run the graph
             result = None
             for step in self.graph.stream(
-                {"messages": [human_message]},
-                stream_mode="values",
-                config=config,
+                {"messages": messages},
+                stream_mode="values"
             ):
                 result = step
             
@@ -164,10 +191,14 @@ class RAGService:
                 else:
                     response_text = str(last_message)
                 
+                # Store assistant response in database
+                assistant_msg_id = self.conversation_repo.add_message_simple(session_id, "assistant", response_text)
+                
                 return {
                     "success": True,
                     "response": response_text,
-                    "session_id": session_id
+                    "session_id": session_id,
+                    "message_id": assistant_msg_id
                 }
             else:
                 return {
@@ -187,33 +218,7 @@ class RAGService:
     def get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
         """Get conversation history for a session"""
         try:
-            config = {"configurable": {"thread_id": session_id}}
-            
-            # Get the current state
-            current_state = self.graph.get_state(config)
-            
-            if current_state and current_state.values.get("messages"):
-                messages = current_state.values["messages"]
-                history = []
-                
-                for msg in messages:
-                    if msg.type == "human":
-                        history.append({
-                            "type": "user",
-                            "content": msg.content,
-                            "timestamp": getattr(msg, 'timestamp', None)
-                        })
-                    elif msg.type == "ai" and not getattr(msg, 'tool_calls', None):
-                        history.append({
-                            "type": "assistant",
-                            "content": msg.content,
-                            "timestamp": getattr(msg, 'timestamp', None)
-                        })
-                
-                return history
-            else:
-                return []
-                
+            return self.conversation_repo.get_message_history(session_id)
         except Exception as e:
             print(f"Error getting conversation history: {e}")
             return []

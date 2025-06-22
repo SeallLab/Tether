@@ -4,6 +4,7 @@ Provides REST API endpoints for the RAG service
 """
 
 import os
+import logging
 from flask import Flask
 from flask_cors import CORS
 
@@ -26,6 +27,12 @@ def create_app():
     """Create and configure the Flask application"""
     app = Flask(__name__)
     CORS(app)  # Enable CORS for cross-origin requests
+    
+    # Configure logging to reduce verbosity in production
+    if not Config.FLASK_DEBUG:
+        # Disable Flask's default request logging
+        logging.getLogger('werkzeug').setLevel(logging.WARNING)
+        app.logger.setLevel(logging.WARNING)
     
     # Register blueprints
     app.register_blueprint(health_bp)
