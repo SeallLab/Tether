@@ -17,6 +17,8 @@ def root():
         "endpoints": {
             "health": "GET /health - Check service health",
             "create_session": "POST /session - Create new conversation session",
+            "create_session_with_message": "POST /session/with-message - Create session with first message and LLM-generated name",
+            "list_sessions": "GET /sessions - List user conversation sessions",
             "generate": "POST /generate - Generate response (requires message and session_id)",
             "get_history": "GET /conversation/<session_id> - Get conversation history",
             "clear_session": "DELETE /conversation/<session_id> - Clear conversation history"

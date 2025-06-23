@@ -12,4 +12,4 @@ export interface LLMStatus {
   provider?: string;
 }
 
-export type TabType = 'activity' | 'llm' | 'general' | 'about'; 
+export type TabType = 'activity' | 'llm' | 'rewards' | 'general' | 'about';

@@ -24,15 +24,15 @@ class ConversationRepository:
         """
         self.db_path = db_path
     
-    def create_session(self, session_id: str = None, metadata: Dict[str, Any] = None) -> str:
+    def create_session(self, session_id: str = None, name: str = None, metadata: Dict[str, Any] = None) -> str:
         """Create a new conversation session"""
         if session_id is None:
             session_id = str(uuid4())
         
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO sessions (id, metadata) VALUES (?, ?)",
-                (session_id, json.dumps(metadata) if metadata else None)
+                "INSERT OR REPLACE INTO sessions (id, name, metadata) VALUES (?, ?, ?)",
+                (session_id, name, json.dumps(metadata) if metadata else None)
             )
         
         return session_id
@@ -50,6 +50,7 @@ class ConversationRepository:
             if row:
                 return {
                     "id": row["id"],
+                    "name": row["name"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
                     "metadata": json.loads(row["metadata"]) if row["metadata"] else {},
@@ -78,6 +79,7 @@ class ConversationRepository:
             return [
                 {
                     "id": row["id"],
+                    "name": row["name"],
                     "created_at": row["created_at"],
                     "updated_at": row["updated_at"],
                     "metadata": json.loads(row["metadata"]) if row["metadata"] else {},
@@ -100,10 +102,38 @@ class ConversationRepository:
             )
             
             # Insert message
-            conn.execute(
+            cursor = conn.execute(
                 "INSERT INTO messages (session_id, message_type, content, metadata) VALUES (?, ?, ?, ?)",
                 (session_id, message_type, content, json.dumps(metadata) if metadata else None)
             )
+            return cursor.lastrowid
+    
+    def add_message_simple(self, session_id: str, message_type: str, content: str, metadata: Dict[str, Any] = None) -> int:
+        """Add a message to a session with simple parameters"""
+        # Validate message type
+        valid_types = ["human", "ai", "system", "tool", "user", "assistant"]
+        if message_type not in valid_types:
+            raise ValueError(f"Invalid message type: {message_type}. Must be one of {valid_types}")
+        
+        # Normalize message types
+        if message_type == "user":
+            message_type = "human"
+        elif message_type == "assistant":
+            message_type = "ai"
+        
+        with sqlite3.connect(self.db_path) as conn:
+            # Update session's updated_at timestamp
+            conn.execute(
+                "UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (session_id,)
+            )
+            
+            # Insert message
+            cursor = conn.execute(
+                "INSERT INTO messages (session_id, message_type, content, metadata) VALUES (?, ?, ?, ?)",
+                (session_id, message_type, content, json.dumps(metadata) if metadata else None)
+            )
+            return cursor.lastrowid
     
     def get_messages(self, session_id: str, limit: int = 100) -> List[BaseMessage]:
         """Get messages for a session"""
@@ -156,6 +186,14 @@ class ConversationRepository:
             conn.execute(
                 "DELETE FROM messages WHERE session_id = ?",
                 (session_id,)
+            )
+    
+    def update_session_name(self, session_id: str, name: str):
+        """Update a session's name"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                "UPDATE sessions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (name, session_id)
             )
     
     def delete_session(self, session_id: str):

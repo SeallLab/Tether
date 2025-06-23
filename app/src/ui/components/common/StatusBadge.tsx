@@ -43,7 +43,7 @@ const statusConfig = {
 
 const sizeClasses = {
   sm: {
-    container: 'p-3',
+    container: 'p-2',
     dot: 'w-2 h-2',
     label: 'text-sm',
     description: 'text-xs',
@@ -74,7 +74,7 @@ export function StatusBadge({
 
   return (
     <div className={`rounded-lg border ${config.bgColor} ${config.borderColor} ${sizeClass.container} ${className}`}>
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-3">
         <div className={`${sizeClass.dot} rounded-full ${config.dotColor}`} />
         <span className={`font-medium ${config.textColor} ${sizeClass.label}`}>
           {label}

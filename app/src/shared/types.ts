@@ -132,4 +132,93 @@ export interface ChatResponse {
   message: string;
   sessionId: string;
   messageId: string;
+}
+
+export interface GamificationData {
+  points: number;
+  level: number;
+  totalPointsEarned: number;
+  currentDockTheme: string;
+  unlockedThemes: string[];
+  badges: Badge[];
+  quests: Quest[];
+  lastPointsEarned: number;
+  lastActivityTime: number;
+  streaks: {
+    dailyFocus: number;
+    weeklyFocus: number;
+    longestStreak: number;
+  };
+  achievements: Achievement[];
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  earnedAt: number | null;
+  progress?: number;
+  maxProgress?: number;
+}
+
+export interface Quest {
+  id: string;
+  name: string;
+  description: string;
+  type: 'daily' | 'weekly' | 'milestone' | 'special';
+  progress: number;
+  maxProgress: number;
+  reward: QuestReward;
+  isCompleted: boolean;
+  completedAt: number | null;
+  expiresAt: number | null;
+}
+
+export interface QuestReward {
+  type: 'points' | 'badge' | 'theme' | 'experience';
+  value: number | string;
+  description: string;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  pointsAwarded: number;
+  earnedAt: number;
+  trigger: string;
+  metadata?: Record<string, any>;
+}
+
+export interface DockTheme {
+  id: string;
+  name: string;
+  description: string;
+  previewColor: string;
+  backgroundColor: string;
+  borderColor?: string;
+  glowColor?: string;
+  unlockCost: number;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  gradient?: {
+    from: string;
+    to: string;
+    direction?: string;
+  };
+  special?: {
+    animated?: boolean;
+    pattern?: string;
+    shimmer?: boolean;
+  };
+}
+
+export interface PointEarningEvent {
+  id: string;
+  type: 'focus_session' | 'streak_bonus' | 'quest_completion' | 'achievement_unlock' | 'daily_login';
+  points: number;
+  description: string;
+  timestamp: number;
+  metadata?: Record<string, any>;
 } 

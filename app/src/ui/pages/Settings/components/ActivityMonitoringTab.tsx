@@ -1,7 +1,13 @@
 import React from 'react';
 import { Button, Toggle, Slider, Input, StatusBadge, Card } from '../../../components/common';
-import type { ActivityStatus } from '../../../types/settings';
 import type { MonitoringConfig } from '../../../../shared/types';
+
+interface ActivityStatus {
+  started: boolean;
+  sessionId: string;
+  monitors: Array<{ name: string; running: boolean }>;
+  config: MonitoringConfig;
+}
 
 interface ActivityMonitoringTabProps {
   status: ActivityStatus | null;

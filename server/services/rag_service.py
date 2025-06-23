@@ -16,7 +16,6 @@ from langchain_community.vectorstores import FAISS
 from langchain.chat_models import init_chat_model
 from langgraph.graph import MessagesState, StateGraph, END
 from langgraph.prebuilt import ToolNode, tools_condition
-from langgraph.checkpoint.sqlite import SqliteSaver
 from .conversation_repository import ConversationRepository
 
 
@@ -35,11 +34,12 @@ class RAGService:
         self.llm = init_chat_model("gemini-2.0-flash", model_provider="google_genai")
         self.conversation_repo = ConversationRepository(db_path)
         self.db_path = db_path
+        self._current_activity_context = None
         
         # Load vector store
         self.load_vector_store(vector_store_path)
         
-        # Initialize RAG graph
+        # Initialize RAG graph (without persistence for now)
         self._setup_rag_graph()
     
     def load_vector_store(self, file_path: str):
@@ -65,8 +65,228 @@ class RAGService:
         
         return retrieve
     
+    def _create_system_prompt(self, activity_summary: str = "", docs_content: str = "") -> str:
+        """Create the unified ADHD-focused system prompt"""
+        context_section = ""
+        if docs_content:
+            context_section = f"RETRIEVED RESEARCH CONTEXT:\n{docs_content}\n\n"
+        
+        return f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
+
+CORE PRINCIPLES:
+- Keep responses generally concise (4-5 sentences max)
+- Be encouraging and understanding, never judgmental
+- Focus on actionable, specific advice
+- Break down complex tasks into smaller steps
+- Acknowledge ADHD challenges (executive dysfunction, hyperfocus, time blindness)
+- Use positive, motivating language
+
+RESPONSE APPROACH - PRIORITIZE EMOTIONAL SUPPORT:
+When users express feeling overwhelmed, stressed, or struggling emotionally, use a TWO-STEP approach:
+
+STEP 1: Address their emotional state and ADHD experience first
+- Validate their feelings ("Feeling overwhelmed is totally valid, especially with ADHD")
+- Offer immediate emotional regulation techniques (deep breathing, grounding, etc.)
+- Remind them this feeling is temporary and manageable
+- Suggest ADHD-specific coping strategies
+- Do not suggest any medication, only suggest non-pharmacological therapies.
+
+STEP 2: Then help with the actual task
+- Break down the technical/practical task into small, manageable steps
+- Focus on just the very first step to reduce overwhelm
+- Remind them they can tackle one piece at a time
+- Tell them to verify the technical suggestion with colleagues or other sources before applying it.
+
+RESPONSE GUIDELINES:
+- If they're struggling with focus: Suggest specific techniques (Pomodoro, body doubling, etc.)
+- If they're overwhelmed: FIRST validate emotions, THEN help break tasks into smaller pieces
+- If they're procrastinating: Offer gentle accountability and starting strategies
+- If they're hyperfocusing: Remind them about breaks and self-care
+- If they're planning: Help prioritize and create realistic timelines
+- Always validate their experience and offer hope
+
+DECISION MAKING:
+- For questions about personal history, activities, or "what was I doing", use the USER'S ACTIVITY HISTORY below - DO NOT use the retrieve tool
+- For questions about ADHD strategies, techniques, or research, use the retrieve tool to get relevant information
+- For general conversation or support, you can respond directly or use retrieval if helpful
+
+{context_section}{activity_summary}
+
+IMPORTANT: You have access to the user's recent activity history above. When they ask about what they were doing (yesterday, today, recently), use this information directly - don't search for it.{' Always prioritize emotional support when users express overwhelm.' if docs_content else ''}"""
+
+    def _analyze_activity_context(self, activity_logs: List[Dict]) -> str:
+        """Analyze activity logs to provide insights for the LLM"""
+        if not activity_logs:
+            return ""
+        
+        # Group activities by day
+        from datetime import datetime, timedelta
+        import time
+        
+        # Convert timestamps and group by day
+        activities_by_day = {}
+        app_switches = []
+        idle_periods = []
+        
+        for log in activity_logs:
+            timestamp = log.get('timestamp', 0)
+            if timestamp:
+                # Convert timestamp to date
+                dt = datetime.fromtimestamp(timestamp / 1000)  # Convert from milliseconds
+                day_key = dt.strftime('%Y-%m-%d')
+                
+                if day_key not in activities_by_day:
+                    activities_by_day[day_key] = {
+                        'window_changes': [],
+                        'idle_periods': [],
+                        'apps_used': set()
+                    }
+                
+                if log.get('type') == 'window_change':
+                    data = log.get('data', {})
+                    app_name = data.get('application_name', 'Unknown')
+                    window_title = data.get('window_title', '')
+                    
+                    activities_by_day[day_key]['window_changes'].append({
+                        'time': dt.strftime('%H:%M'),
+                        'app': app_name,
+                        'window': window_title
+                    })
+                    activities_by_day[day_key]['apps_used'].add(app_name)
+                    
+                    app_switches.append({
+                        'app': app_name,
+                        'time': timestamp
+                    })
+                    
+                elif log.get('type') == 'idle':
+                    data = log.get('data', {})
+                    idle_duration = data.get('idle_duration', 0)
+                    was_idle = data.get('was_idle', False)
+                    if was_idle and idle_duration > 60:  # More than 1 minute idle
+                        activities_by_day[day_key]['idle_periods'].append({
+                            'time': dt.strftime('%H:%M'),
+                            'duration': idle_duration
+                        })
+                        idle_periods.append(idle_duration)
+        
+        # Generate day summaries
+        day_summaries = []
+        today = datetime.now().strftime('%Y-%m-%d')
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        for day, activities in sorted(activities_by_day.items(), reverse=True):
+            if day == today:
+                day_label = "Today"
+            elif day == yesterday:
+                day_label = "Yesterday"
+            else:
+                day_label = day
+            
+            apps_used = list(activities['apps_used'])
+            window_changes = activities['window_changes']
+            
+            if apps_used:
+                # Get most used apps for the day
+                app_counts = {}
+                for change in window_changes:
+                    app = change['app']
+                    app_counts[app] = app_counts.get(app, 0) + 1
+                
+                top_apps = sorted(app_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+                app_summary = ", ".join([f"{app} ({count} times)" for app, count in top_apps])
+                
+                day_summaries.append(f"{day_label} ({day}): Used {app_summary}")
+                
+                # Add specific activities if it's yesterday and user is asking about it
+                if len(window_changes) > 0:
+                    first_activity = window_changes[0]['time']
+                    last_activity = window_changes[-1]['time']
+                    day_summaries.append(f"  - Active from {first_activity} to {last_activity}")
+                    
+                    # Show some specific windows/tasks
+                    interesting_windows = [w for w in window_changes if w['window'] and 'No Window' not in w['window']][:5]
+                    if interesting_windows:
+                        window_titles = [f"{w['time']}: {w['window']}" for w in interesting_windows]
+                        day_summaries.append(f"  - Key activities: {'; '.join(window_titles[:3])}")
+        
+        # Generate pattern insights
+        insights = []
+        
+        # App switching analysis
+        if len(app_switches) > 10:  # Many app switches
+            unique_apps = len(set(switch['app'] for switch in app_switches))
+            insights.append(f"High task switching detected: {len(app_switches)} app changes across {unique_apps} applications in recent days.")
+        
+        # Identify most used applications overall
+        if app_switches:
+            app_counts = {}
+            for switch in app_switches:
+                app = switch['app']
+                app_counts[app] = app_counts.get(app, 0) + 1
+            
+            most_used = max(app_counts.items(), key=lambda x: x[1])
+            if most_used[1] > 5:  # Used more than 5 times
+                insights.append(f"Most frequently used application: {most_used[0]} ({most_used[1]} interactions).")
+        
+        # Idle time analysis
+        if idle_periods:
+            total_idle = sum(idle_periods)
+            avg_idle = total_idle / len(idle_periods)
+            if avg_idle > 300:  # Average idle > 5 minutes
+                insights.append(f"Extended idle periods detected (avg {avg_idle/60:.1f} minutes).")
+        
+        # Task consistency analysis
+        if app_switches:
+            # Calculate time spent in different applications
+            app_durations = {}
+            current_time = None
+            current_app = None
+            
+            for switch in sorted(app_switches, key=lambda x: x['time']):
+                if current_app and current_time:
+                    duration = switch['time'] - current_time
+                    if duration > 0 and duration < 3600000:  # Less than 1 hour (in ms)
+                        app_durations[current_app] = app_durations.get(current_app, 0) + duration
+                
+                current_app = switch['app']
+                current_time = switch['time']
+            
+            # Identify potential focus sessions
+            focus_apps = {app: duration for app, duration in app_durations.items() 
+                         if duration > 600000}  # More than 10 minutes
+            
+            if focus_apps:
+                longest_focus = max(focus_apps.items(), key=lambda x: x[1])
+                focus_minutes = longest_focus[1] / 60000  # Convert to minutes
+                insights.append(f"Good focus session detected: {focus_minutes:.1f} minutes in {longest_focus[0]}.")
+        
+        # Context-aware suggestions
+        if len(app_switches) > 20:  # Very high task switching
+            insights.append("Consider using a focus technique like Pomodoro or time-blocking to reduce context switching.")
+        elif len(app_switches) < 3:  # Very low activity
+            insights.append("Low activity detected. If you're stuck, try the 2-minute rule or breaking tasks into smaller steps.")
+        
+        # Combine summaries and insights
+        result_parts = []
+        
+        if day_summaries:
+            result_parts.append("USER'S RECENT ACTIVITY HISTORY:")
+            result_parts.extend([f"- {summary}" for summary in day_summaries])
+            result_parts.append("")  # Empty line for separation
+        
+        if insights:
+            result_parts.append("ACTIVITY PATTERNS & INSIGHTS:")
+            result_parts.extend([f"- {insight}" for insight in insights])
+            result_parts.append("")  # Empty line for separation
+        
+        if result_parts:
+            return "\n" + "\n".join(result_parts)
+        
+        return ""
+    
     def _setup_rag_graph(self):
-        """Set up the RAG graph with conversation history"""
+        """Set up the RAG graph without persistence"""
         
         # Create retrieve tool
         retrieve_tool = self._create_retrieve_tool()
@@ -75,9 +295,33 @@ class RAGService:
         graph_builder = StateGraph(MessagesState)
         
         def query_or_respond(state: MessagesState):
-            """Generate tool call for retrieval or respond."""
+            """Generate tool call for retrieval or respond with activity context awareness."""
+            # Add activity context to system message if available
+            messages = state["messages"]
+            activity_context = getattr(self, '_current_activity_context', None)
+            
+            # Create an enhanced system message with activity context
+            if activity_context:
+                activity_summary = self._analyze_activity_context(activity_context)
+                enhanced_system_prompt = self._create_system_prompt(activity_summary=activity_summary)
+                
+                # Replace or add system message
+                enhanced_messages = []
+                system_added = False
+                for msg in messages:
+                    if msg.type == "system":
+                        enhanced_messages.append(SystemMessage(content=enhanced_system_prompt))
+                        system_added = True
+                    else:
+                        enhanced_messages.append(msg)
+                
+                if not system_added:
+                    enhanced_messages = [SystemMessage(content=enhanced_system_prompt)] + enhanced_messages
+                
+                messages = enhanced_messages
+            
             llm_with_tools = self.llm.bind_tools([retrieve_tool])
-            response = llm_with_tools.invoke(state["messages"])
+            response = llm_with_tools.invoke(messages)
             return {"messages": [response]}
         
         def generate(state: MessagesState):
@@ -91,17 +335,12 @@ class RAGService:
                     break
             tool_messages = recent_tool_messages[::-1]
             
-            # Format into prompt
+            # Format into prompt with RAG content
             docs_content = "\n\n".join(doc.content for doc in tool_messages)
-            system_message_content = (
-                "You are an assistant for question-answering tasks. "
-                "Use the following pieces of retrieved context to answer "
-                "the question. If you don't know the answer, say that you "
-                "don't know. Use three sentences maximum and keep the "
-                "answer concise."
-                "\n\n"
-                f"{docs_content}"
-            )
+            
+            # Create focused prompt for RAG responses using shared function
+            system_message_content = self._create_system_prompt(docs_content=docs_content)
+            
             conversation_messages = [
                 message
                 for message in state["messages"]
@@ -130,29 +369,110 @@ class RAGService:
         graph_builder.add_edge("tools", "generate")
         graph_builder.add_edge("generate", END)
         
-        # Compile with SQLite persistence
-        memory = SqliteSaver.from_conn_string(f"sqlite:///{self.db_path}")
-        self.graph = graph_builder.compile(checkpointer=memory)
+        # Compile without persistence (we are handling persistence manually)
+        self.graph = graph_builder.compile()
     
     def create_session(self) -> str:
         """Create a new conversation session"""
         return self.conversation_repo.create_session()
     
-    def generate_response(self, message: str, session_id: str) -> Dict[str, Any]:
-        """Generate a response for the given message and session"""
+    def _generate_chat_name(self, first_message: str) -> str:
+        """Generate a meaningful chat name based on the first message using LLM"""
         try:
-            # Configuration for the session
-            config = {"configurable": {"thread_id": session_id}}
+            # Create a simple prompt for name generation
+            naming_prompt = f"""Generate a short, meaningful title (3-5 words max) for a chat that starts with this message:
+
+"{first_message}"
+
+The title should:
+- Be concise and descriptive
+- Capture the main topic or intent
+- Be suitable for ADHD users (clear, not overwhelming)
+- Use title case
+
+Examples:
+- "Focus Techniques Help"
+- "React Project Setup"
+- "Managing Overwhelm"
+- "Time Management Tips"
+
+Title:"""
+
+            # Use the LLM to generate the name
+            response = self.llm.invoke([HumanMessage(content=naming_prompt)])
             
-            # Create human message
-            human_message = HumanMessage(content=message)
+            # Extract and clean the response
+            generated_name = response.content.strip()
+            
+            # Remove quotes if present
+            if generated_name.startswith('"') and generated_name.endswith('"'):
+                generated_name = generated_name[1:-1]
+            
+            # Ensure it's not too long
+            if len(generated_name) > 50:
+                generated_name = generated_name[:47] + "..."
+            
+            return generated_name if generated_name else "New Chat"
+            
+        except Exception as e:
+            print(f"Error generating chat name: {e}")
+            return "New Chat"
+    
+    def create_session_with_first_message(self, first_message: str) -> Dict[str, str]:
+        """Create a new conversation session and generate a name based on first message"""
+        session_id = self.conversation_repo.create_session()
+        
+        # Generate a meaningful name
+        chat_name = self._generate_chat_name(first_message)
+        
+        # Update the session with the generated name
+        self.conversation_repo.update_session_name(session_id, chat_name)
+        
+        return {
+            "session_id": session_id,
+            "name": chat_name
+        }
+    
+    def generate_response(self, message: str, session_id: str, activity_context: List[Dict] = None) -> Dict[str, Any]:
+        """Generate a response for the given message and session with optional activity context"""
+        try:
+            # Get conversation history from our database
+            history = self.get_conversation_history(session_id)
+            
+            # Check if this is the first message in the session
+            is_first_message = len(history) == 0
+            
+            # If this is the first message and the session doesn't have a name, generate one
+            if is_first_message:
+                session_info = self.conversation_repo.get_session(session_id)
+                if session_info and (not session_info.get("name") or session_info.get("name") == "New Chat"):
+                    # Generate and update the session name
+                    chat_name = self._generate_chat_name(message)
+                    self.conversation_repo.update_session_name(session_id, chat_name)
+            
+            # Convert history to LangChain messages
+            messages = []
+            for msg in history:
+                if msg["type"] == "human":
+                    messages.append(HumanMessage(content=msg["content"]))
+                elif msg["type"] == "ai":
+                    messages.append(AIMessage(content=msg["content"]))
+            
+            # Add the new user message
+            user_message = HumanMessage(content=message)
+            messages.append(user_message)
+            
+            # Store user message in database
+            user_msg_id = self.conversation_repo.add_message_simple(session_id, "user", message)
+            
+            # Store activity context for this request
+            self._current_activity_context = activity_context
             
             # Run the graph
             result = None
             for step in self.graph.stream(
-                {"messages": [human_message]},
-                stream_mode="values",
-                config=config,
+                {"messages": messages},
+                stream_mode="values"
             ):
                 result = step
             
@@ -164,10 +484,14 @@ class RAGService:
                 else:
                     response_text = str(last_message)
                 
+                # Store assistant response in database
+                assistant_msg_id = self.conversation_repo.add_message_simple(session_id, "assistant", response_text)
+                
                 return {
                     "success": True,
                     "response": response_text,
-                    "session_id": session_id
+                    "session_id": session_id,
+                    "message_id": assistant_msg_id
                 }
             else:
                 return {
@@ -187,33 +511,7 @@ class RAGService:
     def get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
         """Get conversation history for a session"""
         try:
-            config = {"configurable": {"thread_id": session_id}}
-            
-            # Get the current state
-            current_state = self.graph.get_state(config)
-            
-            if current_state and current_state.values.get("messages"):
-                messages = current_state.values["messages"]
-                history = []
-                
-                for msg in messages:
-                    if msg.type == "human":
-                        history.append({
-                            "type": "user",
-                            "content": msg.content,
-                            "timestamp": getattr(msg, 'timestamp', None)
-                        })
-                    elif msg.type == "ai" and not getattr(msg, 'tool_calls', None):
-                        history.append({
-                            "type": "assistant",
-                            "content": msg.content,
-                            "timestamp": getattr(msg, 'timestamp', None)
-                        })
-                
-                return history
-            else:
-                return []
-                
+            return self.conversation_repo.get_message_history(session_id)
         except Exception as e:
             print(f"Error getting conversation history: {e}")
             return []

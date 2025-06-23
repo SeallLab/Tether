@@ -1,19 +1,18 @@
 import React from 'react';
-import type { TabType } from '../../../types/settings';
 
-export interface TabItem {
-  id: TabType;
+export interface TabItem<T = string> {
+  id: T;
   label: string;
   icon: React.ReactNode;
 }
 
-export interface TabNavigationProps {
-  tabs: TabItem[];
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
+export interface TabNavigationProps<T = string> {
+  tabs: TabItem<T>[];
+  activeTab: T;
+  onTabChange: (tab: T) => void;
 }
 
-export function TabNavigation({ tabs, activeTab, onTabChange }: TabNavigationProps) {
+export function TabNavigation<T extends string>({ tabs, activeTab, onTabChange }: TabNavigationProps<T>) {
   return (
     <div className="bg-white border-b border-gray-200 px-8 flex-shrink-0">
       <nav className="flex space-x-8" aria-label="Tabs">

@@ -61,6 +61,21 @@ declare global {
           error?: string;
         }>;
       };
+      gamification: {
+        getData: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        updateData: (data: any) => Promise<{ success: boolean; error?: string }>;
+        awardPoints: (points: number, reason: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        unlockTheme: (themeId: string) => Promise<{ success: boolean; error?: string }>;
+        updateBadgeProgress: (badgeId: string, progress: number) => Promise<{ success: boolean; error?: string }>;
+        completeQuest: (questId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        resetDaily: () => Promise<{ success: boolean; error?: string }>;
+        resetWeekly: () => Promise<{ success: boolean; error?: string }>;
+        getThemes: () => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        getBadges: () => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        getQuests: () => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        applyTheme: (themeId: string) => Promise<{ success: boolean; error?: string }>;
+        checkFirstTimeSettings: () => Promise<{ success: boolean; data?: { badge: any; firstTime: boolean }; error?: string }>;
+      };
     }
   }
 } 

@@ -51,7 +51,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
       // Only add welcome message, don't create session yet
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        text: "Hi! I noticed you just started your day. What are your main goals and priorities for today? I'm here to help you plan and stay focused! 🎯",
+        text: "Hi! I noticed you just started your day. What are your main goals and priorities for today? I'm here to help you plan and stay focused!",
         sender: 'assistant',
         timestamp: new Date()
       };

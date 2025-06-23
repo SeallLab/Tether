@@ -45,6 +45,17 @@ const IPC_CHANNELS = {
   PYTHON_SERVER_GET_URL: 'python-server:get-url',
   PYTHON_SERVER_HEALTH_CHECK: 'python-server:health-check',
   PYTHON_SERVER_API_REQUEST: 'python-server:api-request',
+  
+  // Gamification
+  GET_GAMIFICATION_DATA: 'get-gamification-data',
+  UPDATE_GAMIFICATION_DATA: 'update-gamification-data',
+  AWARD_POINTS: 'award-points',
+  UNLOCK_THEME: 'unlock-theme',
+  SET_DOCK_THEME: 'set-dock-theme',
+  COMPLETE_QUEST: 'complete-quest',
+  EARN_BADGE: 'earn-badge',
+  CHECK_FIRST_TIME_SETTINGS: 'check-first-time-settings',
+  POINT_EARNED_NOTIFICATION: 'point-earned-notification',
 } as const;
 
 // Expose protected methods that allow the renderer process to use
@@ -126,5 +137,41 @@ contextBridge.exposeInMainWorld('electron', {
     healthCheck: () => ipcRenderer.invoke(IPC_CHANNELS.PYTHON_SERVER_HEALTH_CHECK),
     apiRequest: (method: string, endpoint: string, data?: any) => 
       ipcRenderer.invoke(IPC_CHANNELS.PYTHON_SERVER_API_REQUEST, { method, endpoint, data })
+  },
+
+  // Gamification API
+  gamification: {
+    getData: () => ipcRenderer.invoke(IPC_CHANNELS.GET_GAMIFICATION_DATA),
+    awardPoints: (points: number, type: string, description: string, metadata?: any) => 
+      ipcRenderer.invoke(IPC_CHANNELS.AWARD_POINTS, { points, type, description, metadata }),
+    unlockTheme: (themeId: string) => ipcRenderer.invoke(IPC_CHANNELS.UNLOCK_THEME, themeId),
+    setDockTheme: (themeId: string) => ipcRenderer.invoke(IPC_CHANNELS.SET_DOCK_THEME, themeId),
+    applyTheme: (themeId: string) => ipcRenderer.invoke(IPC_CHANNELS.SET_DOCK_THEME, themeId),
+    completeQuest: (questId: string) => ipcRenderer.invoke(IPC_CHANNELS.COMPLETE_QUEST, questId),
+    earnBadge: (badgeId: string) => ipcRenderer.invoke(IPC_CHANNELS.EARN_BADGE, badgeId),
+    checkFirstTimeSettings: () => ipcRenderer.invoke(IPC_CHANNELS.CHECK_FIRST_TIME_SETTINGS),
+    getThemes: () => ipcRenderer.invoke(IPC_CHANNELS.GET_GAMIFICATION_DATA).then((result: any) => ({ 
+      success: result.success, 
+      data: result.data?.availableThemes,
+      error: result.error 
+    })),
+    onPointsEarned: (callback: (data: any) => void) => {
+      ipcRenderer.on(IPC_CHANNELS.POINT_EARNED_NOTIFICATION, (event: any, data: any) => callback(data));
+    },
+    onQuestCompleted: (callback: (quest: any) => void) => {
+      ipcRenderer.on('quest-completed', (event: any, quest: any) => callback(quest));
+    },
+    onBadgeEarned: (callback: (badge: any) => void) => {
+      ipcRenderer.on('badge-earned', (event: any, badge: any) => callback(badge));
+    },
+    onDockThemeChanged: (callback: (theme: any) => void) => {
+      ipcRenderer.on('dock-theme-changed', (event: any, theme: any) => callback(theme));
+    },
+    removeAllListeners: () => {
+      ipcRenderer.removeAllListeners(IPC_CHANNELS.POINT_EARNED_NOTIFICATION);
+      ipcRenderer.removeAllListeners('quest-completed');
+      ipcRenderer.removeAllListeners('badge-earned');
+      ipcRenderer.removeAllListeners('dock-theme-changed');
+    }
   }
 });
