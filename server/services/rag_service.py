@@ -65,17 +65,16 @@ class RAGService:
         
         return retrieve
     
-    def _create_adhd_focused_prompt(self, docs_content: str, activity_context: List[Dict] = None) -> str:
-        """Create an ADHD-focused system prompt with optional activity context"""
-        activity_summary = ""
+    def _create_system_prompt(self, activity_summary: str = "", docs_content: str = "") -> str:
+        """Create the unified ADHD-focused system prompt"""
+        context_section = ""
+        if docs_content:
+            context_section = f"RETRIEVED RESEARCH CONTEXT:\n{docs_content}\n\n"
         
-        if activity_context and len(activity_context) > 0:
-            activity_summary = self._analyze_activity_context(activity_context)
-        
-        base_prompt = f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
+        return f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
 
 CORE PRINCIPLES:
-- Keep responses concise (2-3 sentences max)
+- Keep responses generally concise (4-5 sentences max)
 - Be encouraging and understanding, never judgmental
 - Focus on actionable, specific advice
 - Break down complex tasks into smaller steps
@@ -90,11 +89,13 @@ STEP 1: Address their emotional state and ADHD experience first
 - Offer immediate emotional regulation techniques (deep breathing, grounding, etc.)
 - Remind them this feeling is temporary and manageable
 - Suggest ADHD-specific coping strategies
+- Do not suggest any medication, only suggest non-pharmacological therapies.
 
 STEP 2: Then help with the actual task
 - Break down the technical/practical task into small, manageable steps
 - Focus on just the very first step to reduce overwhelm
 - Remind them they can tackle one piece at a time
+- Tell them to verify the technical suggestion with colleagues or other sources before applying it.
 
 RESPONSE GUIDELINES:
 - If they're struggling with focus: Suggest specific techniques (Pomodoro, body doubling, etc.)
@@ -104,17 +105,15 @@ RESPONSE GUIDELINES:
 - If they're planning: Help prioritize and create realistic timelines
 - Always validate their experience and offer hope
 
-IMPORTANT: You have access to the user's recent activity history and patterns. When they ask about what they were doing (yesterday, today, recently), use this information to provide specific answers.
+DECISION MAKING:
+- For questions about personal history, activities, or "what was I doing", use the USER'S ACTIVITY HISTORY below - DO NOT use the retrieve tool
+- For questions about ADHD strategies, techniques, or research, use the retrieve tool to get relevant information
+- For general conversation or support, you can respond directly or use retrieval if helpful
 
-AVAILABLE CONTEXT:
-{docs_content}
+{context_section}{activity_summary}
 
-{activity_summary}
+IMPORTANT: You have access to the user's recent activity history above. When they ask about what they were doing (yesterday, today, recently), use this information directly - don't search for it.{' Always prioritize emotional support when users express overwhelm.' if docs_content else ''}"""
 
-Use the retrieved context and activity history when relevant. When asked about past activities, refer to the USER'S RECENT ACTIVITY HISTORY section above. Respond as Tether in a warm, understanding, and concise way."""
-        
-        return base_prompt
-    
     def _analyze_activity_context(self, activity_logs: List[Dict]) -> str:
         """Analyze activity logs to provide insights for the LLM"""
         if not activity_logs:
@@ -304,38 +303,7 @@ Use the retrieved context and activity history when relevant. When asked about p
             # Create an enhanced system message with activity context
             if activity_context:
                 activity_summary = self._analyze_activity_context(activity_context)
-                enhanced_system_prompt = f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
-
-CORE PRINCIPLES:
-- Keep responses concise (2-3 sentences max)
-- Be encouraging and understanding, never judgmental
-- Focus on actionable, specific advice
-- Break down complex tasks into smaller steps
-- Acknowledge ADHD challenges (executive dysfunction, hyperfocus, time blindness)
-- Use positive, motivating language
-
-RESPONSE APPROACH - PRIORITIZE EMOTIONAL SUPPORT:
-When users express feeling overwhelmed, stressed, or struggling emotionally, use a TWO-STEP approach:
-
-STEP 1: Address their emotional state and ADHD experience first
-- Validate their feelings ("Feeling overwhelmed is totally valid, especially with ADHD")
-- Offer immediate emotional regulation techniques (deep breathing, grounding, etc.)
-- Remind them this feeling is temporary and manageable
-- Suggest ADHD-specific coping strategies
-
-STEP 2: Then help with the actual task
-- Break down the technical/practical task into small, manageable steps
-- Focus on just the very first step to reduce overwhelm
-- Remind them they can tackle one piece at a time
-
-DECISION MAKING:
-- For questions about personal history, activities, or "what was I doing", use the USER'S ACTIVITY HISTORY below - DO NOT use the retrieve tool
-- For questions about ADHD strategies, techniques, or research, use the retrieve tool to get relevant information
-- For general conversation or support, you can respond directly or use retrieval if helpful
-
-{activity_summary}
-
-IMPORTANT: You have access to the user's recent activity history above. When they ask about what they were doing (yesterday, today, recently), use this information directly - don't search for it."""
+                enhanced_system_prompt = self._create_system_prompt(activity_summary=activity_summary)
                 
                 # Replace or add system message
                 enhanced_messages = []
@@ -370,35 +338,8 @@ IMPORTANT: You have access to the user's recent activity history above. When the
             # Format into prompt with RAG content
             docs_content = "\n\n".join(doc.content for doc in tool_messages)
             
-            # Create focused prompt for RAG responses
-            system_message_content = f"""You are Tether, an AI assistant specifically designed to help people with ADHD stay focused and productive.
-
-CORE PRINCIPLES:
-- Keep responses concise (2-3 sentences max)
-- Be encouraging and understanding, never judgmental
-- Focus on actionable, specific advice
-- Break down complex tasks into smaller steps
-- Acknowledge ADHD challenges (executive dysfunction, hyperfocus, time blindness)
-- Use positive, motivating language
-
-RESPONSE APPROACH - PRIORITIZE EMOTIONAL SUPPORT:
-When users express feeling overwhelmed, stressed, or struggling emotionally, use a TWO-STEP approach:
-
-STEP 1: Address their emotional state and ADHD experience first
-- Validate their feelings ("Feeling overwhelmed is totally valid, especially with ADHD")
-- Offer immediate emotional regulation techniques (deep breathing, grounding, etc.)
-- Remind them this feeling is temporary and manageable
-- Suggest ADHD-specific coping strategies
-
-STEP 2: Then help with the actual task
-- Break down the technical/practical task into small, manageable steps
-- Focus on just the very first step to reduce overwhelm
-- Remind them they can tackle one piece at a time
-
-RETRIEVED RESEARCH CONTEXT:
-{docs_content}
-
-Use the retrieved research context to provide evidence-based ADHD support and strategies. Always prioritize emotional support when users express overwhelm. Respond as Tether in a warm, understanding, and concise way."""
+            # Create focused prompt for RAG responses using shared function
+            system_message_content = self._create_system_prompt(docs_content=docs_content)
             
             conversation_messages = [
                 message
@@ -428,18 +369,86 @@ Use the retrieved research context to provide evidence-based ADHD support and st
         graph_builder.add_edge("tools", "generate")
         graph_builder.add_edge("generate", END)
         
-        # Compile without persistence (we'll handle persistence manually)
+        # Compile without persistence (we are handling persistence manually)
         self.graph = graph_builder.compile()
     
     def create_session(self) -> str:
         """Create a new conversation session"""
         return self.conversation_repo.create_session()
     
+    def _generate_chat_name(self, first_message: str) -> str:
+        """Generate a meaningful chat name based on the first message using LLM"""
+        try:
+            # Create a simple prompt for name generation
+            naming_prompt = f"""Generate a short, meaningful title (3-5 words max) for a chat that starts with this message:
+
+"{first_message}"
+
+The title should:
+- Be concise and descriptive
+- Capture the main topic or intent
+- Be suitable for ADHD users (clear, not overwhelming)
+- Use title case
+
+Examples:
+- "Focus Techniques Help"
+- "React Project Setup"
+- "Managing Overwhelm"
+- "Time Management Tips"
+
+Title:"""
+
+            # Use the LLM to generate the name
+            response = self.llm.invoke([HumanMessage(content=naming_prompt)])
+            
+            # Extract and clean the response
+            generated_name = response.content.strip()
+            
+            # Remove quotes if present
+            if generated_name.startswith('"') and generated_name.endswith('"'):
+                generated_name = generated_name[1:-1]
+            
+            # Ensure it's not too long
+            if len(generated_name) > 50:
+                generated_name = generated_name[:47] + "..."
+            
+            return generated_name if generated_name else "New Chat"
+            
+        except Exception as e:
+            print(f"Error generating chat name: {e}")
+            return "New Chat"
+    
+    def create_session_with_first_message(self, first_message: str) -> Dict[str, str]:
+        """Create a new conversation session and generate a name based on first message"""
+        session_id = self.conversation_repo.create_session()
+        
+        # Generate a meaningful name
+        chat_name = self._generate_chat_name(first_message)
+        
+        # Update the session with the generated name
+        self.conversation_repo.update_session_name(session_id, chat_name)
+        
+        return {
+            "session_id": session_id,
+            "name": chat_name
+        }
+    
     def generate_response(self, message: str, session_id: str, activity_context: List[Dict] = None) -> Dict[str, Any]:
         """Generate a response for the given message and session with optional activity context"""
         try:
             # Get conversation history from our database
             history = self.get_conversation_history(session_id)
+            
+            # Check if this is the first message in the session
+            is_first_message = len(history) == 0
+            
+            # If this is the first message and the session doesn't have a name, generate one
+            if is_first_message:
+                session_info = self.conversation_repo.get_session(session_id)
+                if session_info and (not session_info.get("name") or session_info.get("name") == "New Chat"):
+                    # Generate and update the session name
+                    chat_name = self._generate_chat_name(message)
+                    self.conversation_repo.update_session_name(session_id, chat_name)
             
             # Convert history to LangChain messages
             messages = []

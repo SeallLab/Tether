@@ -22,18 +22,69 @@ def create_session():
         # Get optional context from request
         data = request.get_json() or {}
         context = data.get("context", "general")
+        first_message = data.get("first_message")
         
-        session_id = rag_service.create_session()
+        # If first message is provided, create session with LLM-generated name
+        if first_message:
+            result = rag_service.create_session_with_first_message(first_message)
+            return jsonify({
+                "success": True,
+                "session_id": result["session_id"],
+                "name": result["name"],
+                "context": context
+            }), 200
+        else:
+            # Fallback to regular session creation
+            session_id = rag_service.create_session()
+            return jsonify({
+                "success": True,
+                "session_id": session_id,
+                "name": "New Chat",
+                "context": context
+            }), 200
         
-        # If context is provided, store it as session metadata
-        if context != "general":
-            # You can add context storage logic here if needed
-            pass
-            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@session_bp.route("/session/with-message", methods=["POST"])
+def create_session_with_message():
+    """Create a new conversation session with a first message and LLM-generated name"""
+    from app import rag_service
+    
+    if rag_service is None:
+        return jsonify({
+            "error": "RAG service not initialized"
+        }), 500
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No JSON data provided"
+            }), 400
+        
+        first_message = data.get("first_message")
+        
+        if not first_message:
+            return jsonify({
+                "success": False,
+                "error": "First message is required"
+            }), 400
+        
+        # Create session with LLM-generated name
+        result = rag_service.create_session_with_first_message(first_message)
+        
         return jsonify({
             "success": True,
-            "session_id": session_id,
-            "context": context
+            "session_id": result["session_id"],
+            "name": result["name"],
+            "context": "general"
         }), 200
         
     except Exception as e:
@@ -62,9 +113,14 @@ def list_user_sessions():
         # Format sessions for UI consumption
         formatted_sessions = []
         for session in sessions:
+            # Use the LLM-generated name if available, otherwise fall back to date
+            session_name = session.get("name")
+            if not session_name or session_name.strip() == "":
+                session_name = f"Chat - {session['created_at'][:10]}"
+            
             formatted_sessions.append({
                 "id": session["id"],
-                "title": f"Chat - {session['created_at'][:10]}",  # Will be updated by title generation
+                "title": session_name,
                 "context": "general",  # Default context
                 "messages": [],  # Empty for listing
                 "createdAt": session["created_at"],
