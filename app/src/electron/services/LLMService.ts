@@ -36,7 +36,7 @@ export class LLMService {
       
       return {
         type: 'GET_FOCUS_BACK',
-        should_notify: idleDuration > 300, // Only notify for breaks > 5 minutes
+        should_notify: idleDuration > 300,
         message: fallbackMessage,
         confidence: 0.5,
         reasoning: `Fallback due to ${this.provider.name} provider error`

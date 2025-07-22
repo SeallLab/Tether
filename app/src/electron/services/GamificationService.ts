@@ -138,6 +138,15 @@ const DEFAULT_BADGES: Badge[] = [
     earnedAt: null,
     maxProgress: 240
   },
+    {
+    id: 'quick_recovery',
+    name: 'Quick Recovery',
+    description: 'Recover from a 10-minute break',
+    icon: '🏃‍♂️',
+    rarity: 'rare',
+    earnedAt: null,
+    maxProgress: 10
+  },
   {
     id: 'zen_master',
     name: 'Zen Master',
