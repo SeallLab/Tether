@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { MarkdownRenderer } from '../../components/common';
 
 interface Message {
   id: string;
@@ -318,7 +319,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
                     <span className="text-white text-xs font-medium">You</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-white text-sm leading-relaxed">{message.text}</p>
+                    <MarkdownRenderer 
+                      content={message.text} 
+                      className="text-white text-sm leading-relaxed"
+                    />
                     <p className="text-xs text-slate-400 mt-1">
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -330,7 +334,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
                     <span className="text-white text-xs font-medium">T</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-white text-sm leading-relaxed">{message.text}</p>
+                    <MarkdownRenderer 
+                      content={message.text} 
+                      className="text-white text-sm leading-relaxed"
+                    />
                     <p className="text-xs text-slate-400 mt-1">
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>

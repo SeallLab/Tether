@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file if it exists
 load_dotenv()
 
+# Get the server directory (where this config.py file is located)
+SERVER_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class Config:
     """Base configuration class"""
@@ -16,10 +18,10 @@ class Config:
     GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
     
     # Vector Store Configuration
-    VECTOR_STORE_PATH = os.environ.get('VECTOR_STORE_PATH', 'vector_store')
+    VECTOR_STORE_PATH = os.environ.get('VECTOR_STORE_PATH', os.path.join(SERVER_DIR, 'vector_store'))
     
     # Database Configuration
-    DATABASE_PATH = os.environ.get('DATABASE_PATH', 'conversations.db')
+    DATABASE_PATH = os.environ.get('DATABASE_PATH', os.path.join(SERVER_DIR, 'conversations.db'))
     
     # Flask Configuration
     FLASK_HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
