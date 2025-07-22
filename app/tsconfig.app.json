@@ -10,15 +10,15 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    // "verbatimModuleSyntax": true,  // Disabled - causes issues with type imports
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    // "noUnusedLocals": true,  // Disabled - let ESLint handle unused variables as warnings
+    // "noUnusedParameters": true,  // Disabled - let ESLint handle unused parameters as warnings
     // "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true

@@ -23,6 +23,21 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // Handle unused variables and parameters as warnings instead of errors
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+          // Allow unused parameters in function signatures (common in callbacks)
+          args: 'after-used',
+          vars: 'all',
+        },
+      ],
+      // Allow unused React import (common in modern React with automatic JSX transform)
+      'no-unused-vars': 'off', // Turn off base rule as it's handled by @typescript-eslint
     },
   },
 )

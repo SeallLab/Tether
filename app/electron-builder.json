@@ -1,6 +1,44 @@
 {
   "appId": "com.aarsh.tether",
-  "files": ["dist-react/**/*", "dist-electron/**/*"],
+  "files": [
+    "dist-react/**/*", 
+    "dist-electron/**/*",
+    "../server/**/*",
+    "../rag/**/*",
+    ".env",
+    "!../server/venv/**/*",
+    "!../server/__pycache__/**/*",
+    "!../server/**/__pycache__/**/*",
+    "!../server/**/*.pyc",
+    "!../server/vector_store/**/*",
+    "!../server/db/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "../server",
+      "to": "server",
+      "filter": [
+        "**/*",
+        "!venv/**/*",
+        "!__pycache__/**/*",
+        "!**/__pycache__/**/*",
+        "!**/*.pyc",
+        "!vector_store/**/*",
+        "!db/**/*",
+        "!.DS_Store"
+      ]
+    },
+    {
+      "from": "../rag",
+      "to": "rag",
+      "filter": ["**/*"]
+    },
+    {
+      "from": ".env",
+      "to": ".env",
+      "filter": ["**/*"]
+    }
+  ],
   "icon": "./tether.png",
   "mac": {
     "target": "dmg"

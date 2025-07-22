@@ -26,8 +26,11 @@ export class PythonServerService {
   private pythonExecutable: string;
   private isServerRunning = false;
   private isIndexingComplete = false;
+  private isPackaged: boolean;
 
   constructor(config: Partial<PythonServerConfig> = {}) {
+    console.log('[PythonServerService] DEBUG: Constructor called with config:', JSON.stringify(config, null, 2));
+    
     this.config = {
       serverPort: 5001,
       serverHost: '127.0.0.1',
@@ -38,46 +41,138 @@ export class PythonServerService {
       ...config
     };
 
-    // Get paths relative to the app directory
-    const appRoot = path.join(__dirname, '..', '..', '..', '..');
-    this.serverPath = path.join(appRoot, 'server');
-    this.venvPath = path.join(this.serverPath, this.config.venvName);
+    console.log('[PythonServerService] DEBUG: Final config:', {
+      ...this.config,
+      googleApiKey: this.config.googleApiKey ? '***SET***' : '***NOT SET***'
+    });
+
+    // Detect if running in packaged app
+    this.isPackaged = app.isPackaged;
+    console.log('[PythonServerService] DEBUG: isPackaged:', this.isPackaged);
+    
+    // Set server path based on environment
+    if (this.isPackaged) {
+      // In packaged app, server files are in extraResources
+      this.serverPath = path.join(process.resourcesPath, 'server');
+      console.log('[PythonServerService] DEBUG: Using packaged server path:', this.serverPath);
+    } else {
+      // In development, get paths relative to the app directory
+      const appRoot = path.join(__dirname, '..', '..', '..', '..');
+      this.serverPath = path.join(appRoot, 'server');
+      console.log('[PythonServerService] DEBUG: Using development server path:', this.serverPath);
+    }
+
+    // Virtual environment path - in packaged apps, create in user data directory
+    if (this.isPackaged) {
+      const userDataPath = app.getPath('userData');
+      console.log('[PythonServerService] DEBUG: User data path:', userDataPath);
+      this.venvPath = path.join(userDataPath, 'python-server', this.config.venvName);
+    } else {
+      this.venvPath = path.join(this.serverPath, this.config.venvName);
+    }
     
     // Determine Python executable path based on platform
     const isWindows = process.platform === 'win32';
     this.pythonExecutable = isWindows 
       ? path.join(this.venvPath, 'Scripts', 'python.exe')
       : path.join(this.venvPath, 'bin', 'python');
+      
+    console.log(`[PythonServerService] Running in ${this.isPackaged ? 'packaged' : 'development'} mode`);
+    console.log(`[PythonServerService] Server path: ${this.serverPath}`);
+    console.log(`[PythonServerService] Virtual env path: ${this.venvPath}`);
+    console.log(`[PythonServerService] Python executable: ${this.pythonExecutable}`);
+    console.log(`[PythonServerService] Platform: ${process.platform}`);
+    
+    // Check if paths exist immediately
+    console.log(`[PythonServerService] DEBUG: Server path exists: ${fs.existsSync(this.serverPath)}`);
+    if (fs.existsSync(this.venvPath)) {
+      console.log(`[PythonServerService] DEBUG: Virtual env exists: ${fs.existsSync(this.venvPath)}`);
+      console.log(`[PythonServerService] DEBUG: Python executable exists: ${fs.existsSync(this.pythonExecutable)}`);
+    }
   }
 
   async initialize(): Promise<void> {
+    console.log('[PythonServerService] DEBUG: Initialize called');
     console.log('[PythonServerService] Initializing Python server service...');
     
     try {
+      // Ensure server path exists
+      console.log('[PythonServerService] DEBUG: Checking server path existence...');
+      if (!fs.existsSync(this.serverPath)) {
+        const error = `Server path does not exist: ${this.serverPath}`;
+        console.error('[PythonServerService] ERROR:', error);
+        throw new Error(error);
+      }
+      console.log('[PythonServerService] DEBUG: Server path exists ✓');
+
+      // List server directory contents
+      try {
+        const serverContents = fs.readdirSync(this.serverPath);
+        console.log('[PythonServerService] DEBUG: Server directory contents:', serverContents);
+      } catch (listError) {
+        console.error('[PythonServerService] DEBUG: Could not list server directory:', listError);
+      }
+
+      console.log('[PythonServerService] DEBUG: Starting virtual environment setup...');
       await this.setupVirtualEnvironment();
+      console.log('[PythonServerService] DEBUG: Virtual environment setup complete ✓');
+
+      console.log('[PythonServerService] DEBUG: Starting dependency installation...');
       await this.installDependencies();
+      console.log('[PythonServerService] DEBUG: Dependency installation complete ✓');
+
+      console.log('[PythonServerService] DEBUG: Starting PDF indexing...');
       await this.runIndexing();
+      console.log('[PythonServerService] DEBUG: PDF indexing complete ✓');
+
+      console.log('[PythonServerService] DEBUG: Starting Flask server...');
       await this.startFlaskServer();
+      console.log('[PythonServerService] DEBUG: Flask server startup complete ✓');
       
-      console.log('[PythonServerService] Python server service initialized successfully');
+      console.log('[PythonServerService] Python server service initialized successfully!');
     } catch (error) {
-      console.error('[PythonServerService] Failed to initialize:', error);
+      console.error('[PythonServerService] ERROR: Failed to initialize:', error);
+      console.error('[PythonServerService] ERROR: Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
 
   private async setupVirtualEnvironment(): Promise<void> {
+    console.log('[PythonServerService] DEBUG: setupVirtualEnvironment called');
     console.log('[PythonServerService] Setting up virtual environment...');
     
     // Check if virtual environment already exists
     if (fs.existsSync(this.venvPath)) {
+      console.log('[PythonServerService] DEBUG: Virtual environment already exists at:', this.venvPath);
       console.log('[PythonServerService] Virtual environment already exists');
       return;
     }
 
+    console.log('[PythonServerService] DEBUG: Virtual environment does not exist, creating...');
+
+    // Ensure parent directory exists for packaged apps
+    if (this.isPackaged) {
+      const parentDir = path.dirname(this.venvPath);
+      console.log('[PythonServerService] DEBUG: Ensuring parent directory exists:', parentDir);
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+        console.log('[PythonServerService] DEBUG: Created parent directory');
+      }
+    }
+
     return new Promise((resolve, reject) => {
-      const venvProcess = spawn(this.config.pythonPath!, ['-m', 'venv', this.config.venvName], {
-        cwd: this.serverPath,
+      // For packaged apps, we might need to use a different working directory
+      const cwd = this.isPackaged ? path.dirname(this.venvPath) : this.serverPath;
+      const venvName = this.isPackaged ? path.basename(this.venvPath) : this.config.venvName;
+      
+      console.log('[PythonServerService] DEBUG: Virtual env creation details:');
+      console.log('  - Python command:', this.config.pythonPath);
+      console.log('  - Working directory:', cwd);
+      console.log('  - Venv name:', venvName);
+      console.log('  - Full command: python3 -m venv', venvName);
+
+      const venvProcess = spawn(this.config.pythonPath!, ['-m', 'venv', venvName], {
+        cwd: cwd,
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
@@ -85,45 +180,72 @@ export class PythonServerService {
       let stderr = '';
 
       venvProcess.stdout?.on('data', (data) => {
-        stdout += data.toString();
+        const output = data.toString();
+        stdout += output;
+        console.log('[PythonServerService] VENV STDOUT:', output.trim());
       });
 
       venvProcess.stderr?.on('data', (data) => {
-        stderr += data.toString();
+        const output = data.toString();
+        stderr += output;
+        console.log('[PythonServerService] VENV STDERR:', output.trim());
       });
 
       venvProcess.on('close', (code) => {
+        console.log('[PythonServerService] DEBUG: Virtual env creation finished with code:', code);
+        console.log('[PythonServerService] DEBUG: Final stdout:', stdout);
+        console.log('[PythonServerService] DEBUG: Final stderr:', stderr);
+        
         if (code === 0) {
           console.log('[PythonServerService] Virtual environment created successfully');
+          // Verify the python executable exists
+          if (fs.existsSync(this.pythonExecutable)) {
+            console.log('[PythonServerService] DEBUG: Python executable created successfully ✓');
+          } else {
+            console.error('[PythonServerService] DEBUG: Python executable not found after creation:', this.pythonExecutable);
+          }
           resolve();
         } else {
-          console.error('[PythonServerService] Failed to create virtual environment:', stderr);
-          reject(new Error(`Virtual environment setup failed with code ${code}: ${stderr}`));
+          const error = `Virtual environment setup failed with code ${code}: ${stderr}`;
+          console.error('[PythonServerService] ERROR:', error);
+          reject(new Error(error));
         }
       });
 
       venvProcess.on('error', (error) => {
-        console.error('[PythonServerService] Error creating virtual environment:', error);
+        console.error('[PythonServerService] ERROR: Virtual env creation error:', error);
+        console.error('[PythonServerService] ERROR: This might indicate Python is not installed or not in PATH');
         reject(error);
       });
     });
   }
 
   private async installDependencies(): Promise<void> {
+    console.log('[PythonServerService] DEBUG: installDependencies called');
     console.log('[PythonServerService] Installing Python dependencies...');
     
     const requirementsPath = path.join(this.serverPath, 'requirements.txt');
+    console.log('[PythonServerService] DEBUG: Requirements path:', requirementsPath);
+    
     if (!fs.existsSync(requirementsPath)) {
       console.log('[PythonServerService] No requirements.txt found, skipping dependency installation');
       return;
     }
 
-    return new Promise((resolve, reject) => {
-      const pipExecutable = process.platform === 'win32' 
-        ? path.join(this.venvPath, 'Scripts', 'pip.exe')
-        : path.join(this.venvPath, 'bin', 'pip');
+    console.log('[PythonServerService] DEBUG: Requirements file exists ✓');
 
-      const installProcess = spawn(pipExecutable, ['install', '-r', 'requirements.txt'], {
+    // Check if pip executable exists
+    const pipExecutable = process.platform === 'win32' 
+      ? path.join(this.venvPath, 'Scripts', 'pip.exe')
+      : path.join(this.venvPath, 'bin', 'pip');
+    
+    console.log('[PythonServerService] DEBUG: Pip executable path:', pipExecutable);
+    console.log('[PythonServerService] DEBUG: Pip executable exists:', fs.existsSync(pipExecutable));
+
+    return new Promise((resolve, reject) => {
+      console.log('[PythonServerService] DEBUG: Starting pip install process...');
+      
+      const installProcess = spawn(pipExecutable, ['install', '-r', requirementsPath], {
         cwd: this.serverPath,
         stdio: ['pipe', 'pipe', 'pipe']
       });
@@ -134,48 +256,91 @@ export class PythonServerService {
       installProcess.stdout?.on('data', (data) => {
         const output = data.toString();
         stdout += output;
-        console.log('[PythonServerService] Pip install:', output.trim());
+        console.log('[PythonServerService] PIP INSTALL:', output.trim());
       });
 
       installProcess.stderr?.on('data', (data) => {
         const output = data.toString();
         stderr += output;
-        console.warn('[PythonServerService] Pip install warning:', output.trim());
+        console.warn('[PythonServerService] PIP WARNING:', output.trim());
       });
 
       installProcess.on('close', (code) => {
+        console.log('[PythonServerService] DEBUG: Pip install finished with code:', code);
+        
         if (code === 0) {
           console.log('[PythonServerService] Dependencies installed successfully');
           resolve();
         } else {
-          console.error('[PythonServerService] Failed to install dependencies:', stderr);
-          reject(new Error(`Dependency installation failed with code ${code}: ${stderr}`));
+          const error = `Dependency installation failed with code ${code}: ${stderr}`;
+          console.error('[PythonServerService] ERROR:', error);
+          reject(new Error(error));
         }
       });
 
       installProcess.on('error', (error) => {
-        console.error('[PythonServerService] Error installing dependencies:', error);
+        console.error('[PythonServerService] ERROR: Dependency installation error:', error);
         reject(error);
       });
     });
   }
 
   private async runIndexing(): Promise<void> {
+    console.log('[PythonServerService] DEBUG: runIndexing called');
     console.log('[PythonServerService] Running PDF indexing...');
     
     const indexScriptPath = path.join(this.serverPath, 'index_pdfs.py');
+    console.log('[PythonServerService] DEBUG: Index script path:', indexScriptPath);
+    
     if (!fs.existsSync(indexScriptPath)) {
       console.log('[PythonServerService] No index_pdfs.py found, skipping indexing');
+      this.isIndexingComplete = true; // Mark as complete since there's nothing to index
       return;
     }
 
+    console.log('[PythonServerService] DEBUG: Index script exists ✓');
+
+    const envVars = this.getEnvironmentVariables();
+    console.log('[PythonServerService] DEBUG: Environment variables for indexing:', {
+      ...envVars,
+      GOOGLE_API_KEY: envVars.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***'
+    });
+
+    // Check if Google API key is available
+    if (!envVars.GOOGLE_API_KEY) {
+      console.warn('[PythonServerService] WARNING: Google API key not available, skipping PDF indexing');
+      console.warn('[PythonServerService] WARNING: RAG features will not work, but basic Flask server will still start');
+      this.isIndexingComplete = false; // Mark as incomplete but don't fail
+      return;
+    }
+
+    // Determine the correct PDF directory path based on environment
+    const pdfDirectory = this.isPackaged 
+      ? path.join(process.resourcesPath, 'rag', 'pdfs')
+      : path.join(this.serverPath, '..', 'rag', 'pdfs');
+    
+    // Use the vector store path from environment variables
+    const vectorStorePath = envVars.VECTOR_STORE_PATH;
+    
+    console.log('[PythonServerService] DEBUG: PDF directory path:', pdfDirectory);
+    console.log('[PythonServerService] DEBUG: Vector store output path:', vectorStorePath);
+    console.log('[PythonServerService] DEBUG: PDF directory exists:', fs.existsSync(pdfDirectory));
+
     return new Promise((resolve, reject) => {
-      const indexProcess = spawn(this.pythonExecutable, ['index_pdfs.py'], {
+      const indexArgs = [
+        'index_pdfs.py',
+        '--pdf-dir', pdfDirectory,
+        '--output', vectorStorePath
+      ];
+      
+      console.log('[PythonServerService] DEBUG: Running indexing with args:', indexArgs);
+      
+      const indexProcess = spawn(this.pythonExecutable, indexArgs, {
         cwd: this.serverPath,
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
-          ...this.getEnvironmentVariables()
+          ...envVars
         }
       });
 
@@ -185,34 +350,45 @@ export class PythonServerService {
       indexProcess.stdout?.on('data', (data) => {
         const output = data.toString();
         stdout += output;
-        console.log('[PythonServerService] Indexing:', output.trim());
+        console.log('[PythonServerService] INDEXING:', output.trim());
       });
 
       indexProcess.stderr?.on('data', (data) => {
         const output = data.toString();
         stderr += output;
-        console.warn('[PythonServerService] Indexing warning:', output.trim());
+        console.warn('[PythonServerService] INDEXING WARNING:', output.trim());
       });
 
       indexProcess.on('close', (code) => {
+        console.log('[PythonServerService] DEBUG: Indexing finished with code:', code);
+        
         if (code === 0) {
           console.log('[PythonServerService] PDF indexing completed successfully');
           this.isIndexingComplete = true;
           resolve();
         } else {
-          console.error('[PythonServerService] PDF indexing failed:', stderr);
-          reject(new Error(`PDF indexing failed with code ${code}: ${stderr}`));
+          console.error('[PythonServerService] PDF indexing failed with code:', code);
+          console.error('[PythonServerService] PDF indexing stderr:', stderr);
+          
+          // Don't fail the entire service if indexing fails - just warn and continue
+          console.warn('[PythonServerService] WARNING: PDF indexing failed, but continuing to start Flask server');
+          console.warn('[PythonServerService] WARNING: RAG features may not work properly');
+          this.isIndexingComplete = false;
+          resolve(); // Resolve instead of reject
         }
       });
 
       indexProcess.on('error', (error) => {
-        console.error('[PythonServerService] Error running indexing:', error);
-        reject(error);
+        console.error('[PythonServerService] ERROR: Indexing process error:', error);
+        console.warn('[PythonServerService] WARNING: Indexing process failed, but continuing to start Flask server');
+        this.isIndexingComplete = false;
+        resolve(); // Resolve instead of reject
       });
     });
   }
 
   private async startFlaskServer(): Promise<void> {
+    console.log('[PythonServerService] DEBUG: startFlaskServer called');
     console.log('[PythonServerService] Starting Flask server...');
     
     if (this.flaskProcess) {
@@ -220,13 +396,19 @@ export class PythonServerService {
       return;
     }
 
+    const envVars = this.getEnvironmentVariables();
+    console.log('[PythonServerService] DEBUG: Environment variables for Flask:', {
+      ...envVars,
+      GOOGLE_API_KEY: envVars.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***'
+    });
+
     return new Promise((resolve, reject) => {
       this.flaskProcess = spawn(this.pythonExecutable, ['run.py'], {
         cwd: this.serverPath,
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
           ...process.env,
-          ...this.getEnvironmentVariables()
+          ...envVars
         }
       });
 
@@ -250,17 +432,27 @@ export class PythonServerService {
 
       this.flaskProcess!.stdout?.on('data', (data) => {
         const output = data.toString();
-        console.log('[PythonServerService] Flask:', output.trim());
+        console.log('[PythonServerService] FLASK STDOUT:', output.trim());
         
         // Check for server startup indicators
-        if (output.includes('Running on') || output.includes('* Serving Flask app')) {
-          if (!serverStarted) {
-            serverStarted = true;
-            this.isServerRunning = true;
-            console.log('[PythonServerService] Flask server started successfully');
-            cleanup();
-            resolve();
-          }
+        const isServerStarting = output.includes('🚀 Starting RAG Pipeline Flask Server') ||
+                                  output.includes('Starting server on') ||
+                                  output.includes('Running on') || 
+                                  output.includes('* Serving Flask app') ||
+                                  output.includes('Database initialization complete') ||
+                                  output.includes('Configuration validated');
+                                  
+        if (isServerStarting && !serverStarted) {
+          // Give the server a moment to fully start up
+          setTimeout(() => {
+            if (!serverStarted) {
+              serverStarted = true;
+              this.isServerRunning = true;
+              console.log('[PythonServerService] Flask server started successfully');
+              cleanup();
+              resolve();
+            }
+          }, 2000); // Wait 2 seconds for full startup
         }
       });
 
@@ -272,18 +464,27 @@ export class PythonServerService {
         const isFlaskStartupInfo = output.includes('* Serving Flask app') || 
                                    output.includes('* Debug mode:') ||
                                    output.includes('* Running on');
+        const isSSLWarning = output.includes('NotOpenSSLWarning') || output.includes('urllib3') || output.includes('LibreSSL');
+        const isVectorStoreWarning = output.includes('Vector store directory not found') || 
+                                     output.includes('Make sure to run the indexing script');
         
         if (isAccessLog || isFlaskStartupInfo) {
           // This is normal Flask logging, log as info
-          console.log('[PythonServerService] Flask info:', output.trim());
+          console.log('[PythonServerService] FLASK INFO:', output.trim());
+        } else if (isSSLWarning) {
+          // SSL warnings are not critical - just log as warning
+          console.warn('[PythonServerService] FLASK SSL WARNING:', output.trim());
+        } else if (isVectorStoreWarning) {
+          // Vector store warnings are expected if indexing failed - log as warning
+          console.warn('[PythonServerService] FLASK VECTOR WARNING:', output.trim());
         } else {
           // This is likely an actual error
-          console.error('[PythonServerService] Flask error:', output.trim());
+          console.error('[PythonServerService] FLASK ERROR:', output.trim());
         }
         
         if (!serverStarted) {
-          // Only treat as startup error if it's not a normal log
-          if (!isAccessLog && !isFlaskStartupInfo) {
+          // Only treat as startup error if it's not a normal log, SSL warning, or vector store warning
+          if (!isAccessLog && !isFlaskStartupInfo && !isSSLWarning && !isVectorStoreWarning) {
             cleanup();
             reject(new Error(`Flask server failed to start: ${output}`));
           }
@@ -315,15 +516,55 @@ export class PythonServerService {
   }
 
   private getEnvironmentVariables(): Record<string, string> {
-    return {
+    console.log('[PythonServerService] DEBUG: getEnvironmentVariables called');
+    
+    // Use appropriate paths for packaged vs development
+    const vectorStorePath = this.isPackaged 
+      ? path.join(app.getPath('userData'), 'python-server', 'vector_store')
+      : path.join(this.serverPath, 'vector_store');
+    
+    const databasePath = this.isPackaged 
+      ? path.join(app.getPath('userData'), 'python-server', 'db', 'dev.db')
+      : path.join(this.serverPath, 'db', 'dev.db');
+
+    console.log('[PythonServerService] DEBUG: Vector store path:', vectorStorePath);
+    console.log('[PythonServerService] DEBUG: Database path:', databasePath);
+
+    // Ensure directories exist
+    if (this.isPackaged) {
+      const vectorStoreDir = path.dirname(vectorStorePath);
+      const dbDir = path.dirname(databasePath);
+      
+      console.log('[PythonServerService] DEBUG: Creating directories...');
+      console.log('  - Vector store dir:', vectorStoreDir);
+      console.log('  - DB dir:', dbDir);
+      
+      if (!fs.existsSync(vectorStoreDir)) {
+        fs.mkdirSync(vectorStoreDir, { recursive: true });
+        console.log('[PythonServerService] DEBUG: Created vector store directory');
+      }
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+        console.log('[PythonServerService] DEBUG: Created database directory');
+      }
+    }
+
+    const envVars = {
       FLASK_HOST: this.config.serverHost,
       FLASK_PORT: this.config.serverPort.toString(),
       FLASK_ENV: this.config.flaskEnv,
       FLASK_DEBUG: 'false',
       GOOGLE_API_KEY: this.config.googleApiKey,
-      VECTOR_STORE_PATH: path.join(this.serverPath, 'vector_store'),
-      DATABASE_PATH: path.join(this.serverPath, 'db', 'dev.db')
+      VECTOR_STORE_PATH: vectorStorePath,
+      DATABASE_PATH: databasePath
     };
+
+    console.log('[PythonServerService] DEBUG: Environment variables created:', {
+      ...envVars,
+      GOOGLE_API_KEY: envVars.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***'
+    });
+
+    return envVars;
   }
 
   async shutdown(): Promise<void> {
@@ -360,12 +601,16 @@ export class PythonServerService {
     isIndexingComplete: boolean; 
     serverUrl: string;
     port: number;
+    isPackaged: boolean;
+    serverPath: string;
   } {
     return {
       isRunning: this.isServerRunning,
       isIndexingComplete: this.isIndexingComplete,
       serverUrl: this.getServerUrl(),
-      port: this.config.serverPort
+      port: this.config.serverPort,
+      isPackaged: this.isPackaged,
+      serverPath: this.serverPath
     };
   }
 

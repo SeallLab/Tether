@@ -8,13 +8,16 @@
     "dev": "npm-run-all --parallel dev:react dev:electron",
     "dev:react": "vite",
     "dev:electron": "npm run transpile:electron && cross-env NODE_ENV=development electron .",
-    "build": "tsc -b && vite build",
+    "build": "npm run prepare-build && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "transpile:electron": "tsc --project src/electron/tsconfig.json",
-    "dist:mac": "npm run transpile:electron && electron-builder --mac --arm64",
-    "dist:win": "npm run transpile:electron && electron-builder --win --x64",
-    "dist:linux": "npm run transpile:electron && electron-builder --linux --x64"
+    "prepare-build": "node scripts/prepare-build.js",
+    "check-python": "node scripts/check-python.js",
+    "dist:mac": "npm run build && npm run transpile:electron && electron-builder --mac --arm64",
+    "dist:win": "npm run build && npm run transpile:electron && electron-builder --win --x64",
+    "dist:linux": "npm run build && npm run transpile:electron && electron-builder --linux --x64",
+    "dist:all": "npm run build && npm run transpile:electron && electron-builder --mac --win --linux"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
