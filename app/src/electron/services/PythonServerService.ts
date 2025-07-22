@@ -570,26 +570,56 @@ export class PythonServerService {
   async shutdown(): Promise<void> {
     console.log('[PythonServerService] Shutting down Python server service...');
     
-    if (this.flaskProcess) {
-      return new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          console.log('[PythonServerService] Force killing Flask server process');
-          this.flaskProcess?.kill('SIGKILL');
-          resolve();
-        }, 5000);
+    if (!this.flaskProcess) {
+      console.log('[PythonServerService] No Flask process to shutdown');
+      this.isServerRunning = false;
+      return;
+    }
 
-        this.flaskProcess!.on('close', () => {
-          clearTimeout(timeout);
-          console.log('[PythonServerService] Flask server shut down gracefully');
-          this.flaskProcess = null;
-          this.isServerRunning = false;
-          resolve();
-        });
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.log('[PythonServerService] Graceful shutdown timeout, force killing Flask server process');
+        try {
+          if (this.flaskProcess && !this.flaskProcess.killed) {
+            this.flaskProcess.kill('SIGKILL');
+          }
+        } catch (error) {
+          console.log('[PythonServerService] Error force killing process:', error);
+        }
+        this.cleanup();
+        resolve();
+      }, 3000); // Reduced timeout to 3 seconds
 
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.cleanup();
+        resolve();
+      };
+
+      this.flaskProcess!.on('close', (code) => {
+        console.log('[PythonServerService] Flask server shut down gracefully with code:', code);
+        cleanup();
+      });
+
+      this.flaskProcess!.on('error', (error) => {
+        console.log('[PythonServerService] Flask server shutdown error:', error);
+        cleanup();
+      });
+
+      try {
         console.log('[PythonServerService] Sending SIGTERM to Flask server');
         this.flaskProcess!.kill('SIGTERM');
-      });
-    }
+      } catch (error) {
+        console.log('[PythonServerService] Error sending SIGTERM:', error);
+        cleanup();
+      }
+    });
+  }
+
+  private cleanup(): void {
+    this.flaskProcess = null;
+    this.isServerRunning = false;
+    console.log('[PythonServerService] Cleanup complete');
   }
 
   getServerUrl(): string {

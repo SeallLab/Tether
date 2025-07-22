@@ -165,24 +165,10 @@ export class AppManager {
   }
 
   setupAppEventHandlers(showMainWindow: () => void, cleanup: () => void): void {
-    // Handle app activation (macOS)
+    // Handle app activation (macOS) - when user clicks on dock icon
     app.on('activate', () => {
+      console.log('[AppManager] App activated, showing main window');
       showMainWindow();
-    });
-
-    // Cleanup when app quits
-    app.on('will-quit', async () => {
-      console.log('[AppManager] Unregistering global shortcuts');
-      globalShortcut.unregisterAll();
-      
-      // Shutdown Python server
-      try {
-        await this.pythonServerService.shutdown();
-      } catch (error) {
-        console.error('[AppManager] Error shutting down Python server:', error);
-      }
-      
-      cleanup();
     });
   }
 

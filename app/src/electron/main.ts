@@ -50,7 +50,53 @@ app.on("ready", async () => {
   console.log('[Main] App initialization complete');
 });
 
-// Setup app event handlers
+// Handle window-all-closed event
+app.on('window-all-closed', () => {
+  console.log('[Main] All windows closed');
+  // On macOS, apps typically stay running even when all windows are closed
+  // unless the user explicitly quits with Cmd+Q
+  if (process.platform !== 'darwin') {
+    console.log('[Main] Non-macOS platform, quitting app');
+    app.quit();
+  } else {
+    console.log('[Main] macOS platform, keeping app running in dock');
+  }
+});
+
+// Handle before-quit event (when user explicitly quits with Cmd+Q or Quit menu)
+app.on('before-quit', async (event) => {
+  console.log('[Main] App is about to quit, performing cleanup...');
+  
+  // Prevent immediate quit to allow cleanup
+  event.preventDefault();
+  
+  try {
+    // Shutdown Python server
+    console.log('[Main] Shutting down Python server...');
+    await appManager.getPythonServerService().shutdown();
+    console.log('[Main] Python server shutdown complete');
+    
+    // Clear any timers or notifications
+    notificationManager.clearStartupTimer();
+    
+    // Unregister global shortcuts
+    console.log('[Main] Unregistering global shortcuts...');
+    const { globalShortcut } = await import('electron');
+    globalShortcut.unregisterAll();
+    
+    console.log('[Main] Cleanup complete, quitting app');
+    
+    // Now actually quit the app
+    app.exit(0);
+    
+  } catch (error) {
+    console.error('[Main] Error during cleanup:', error);
+    // Force quit even if cleanup fails
+    app.exit(1);
+  }
+});
+
+// Setup app event handlers (for activate event on macOS)
 appManager.setupAppEventHandlers(
   () => windowManager.showMainWindow(),
   () => notificationManager.clearStartupTimer()
