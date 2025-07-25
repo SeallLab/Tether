@@ -19,7 +19,19 @@ export class AppManager {
   constructor() {
     this.loadEnvironmentVariables();
     this.settingsService = new SettingsService();
-    this.pythonServerService = new PythonServerService();
+    
+    // Pass Google API key explicitly to Python server service
+    const googleApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    console.log('[AppManager] DEBUG: Google API Key loaded:', googleApiKey ? '***SET***' : '***NOT SET***');
+    console.log('[AppManager] DEBUG: All env vars:', {
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? '***SET***' : '***NOT SET***',
+      GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***',
+      ENV: process.env.ENV
+    });
+    
+    this.pythonServerService = new PythonServerService({
+      googleApiKey: googleApiKey
+    });
     this.setupStartupBehavior();
   }
 
@@ -48,9 +60,56 @@ export class AppManager {
   }
 
   private loadEnvironmentVariables(): void {
+    console.log('[AppManager] DEBUG: Loading environment variables...');
+    console.log('[AppManager] DEBUG: isPackaged:', app.isPackaged);
+    console.log('[AppManager] DEBUG: __dirname:', __dirname);
+    
     // Load environment variables from .env file
-    // The .env file is in the app directory, so we go up 3 levels: dist-electron/electron/managers -> dist-electron/electron -> dist-electron -> app
-    dotenv.config({ path: path.join(__dirname, '..', '..', '..', '.env') });
+    if (app.isPackaged) {
+      // In packaged app, try to load from multiple possible locations
+      const possiblePaths = [
+        path.join(process.resourcesPath, '.env'),
+        path.join(process.resourcesPath, 'app', '.env'),
+        path.join(__dirname, '..', '..', '..', '.env'),
+      ];
+      
+      console.log('[AppManager] DEBUG: Trying to load .env from paths:', possiblePaths);
+      
+      let envLoaded = false;
+      for (const envPath of possiblePaths) {
+        try {
+          const result = dotenv.config({ path: envPath });
+          if (!result.error) {
+            console.log('[AppManager] DEBUG: Successfully loaded .env from:', envPath);
+            envLoaded = true;
+            break;
+          }
+        } catch (error) {
+          console.log('[AppManager] DEBUG: Could not load .env from:', envPath, error);
+        }
+      }
+      
+      if (!envLoaded) {
+        console.warn('[AppManager] WARNING: No .env file found in packaged app. Using system environment variables only.');
+      }
+    } else {
+      // In development, load from app directory
+      const envPath = path.join(__dirname, '..', '..', '..', '.env');
+      console.log('[AppManager] DEBUG: Loading .env from development path:', envPath);
+      const result = dotenv.config({ path: envPath });
+      if (result.error) {
+        console.warn('[AppManager] WARNING: Could not load .env file:', result.error);
+      } else {
+        console.log('[AppManager] DEBUG: Successfully loaded .env file');
+      }
+    }
+    
+    // Log environment variables after loading
+    console.log('[AppManager] DEBUG: Environment variables after loading:');
+    console.log('  GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? '***SET***' : '***NOT SET***');
+    console.log('  GOOGLE_API_KEY:', process.env.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***');
+    console.log('  ENV:', process.env.ENV);
+    console.log('  NODE_ENV:', process.env.NODE_ENV);
   }
 
   private setupStartupBehavior(): void {
@@ -106,24 +165,10 @@ export class AppManager {
   }
 
   setupAppEventHandlers(showMainWindow: () => void, cleanup: () => void): void {
-    // Handle app activation (macOS)
+    // Handle app activation (macOS) - when user clicks on dock icon
     app.on('activate', () => {
+      console.log('[AppManager] App activated, showing main window');
       showMainWindow();
-    });
-
-    // Cleanup when app quits
-    app.on('will-quit', async () => {
-      console.log('[AppManager] Unregistering global shortcuts');
-      globalShortcut.unregisterAll();
-      
-      // Shutdown Python server
-      try {
-        await this.pythonServerService.shutdown();
-      } catch (error) {
-        console.error('[AppManager] Error shutting down Python server:', error);
-      }
-      
-      cleanup();
     });
   }
 

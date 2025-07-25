@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Electron build artifacts
+dist-electron
+dist-react
+
+# Python bundle for packaging
+python-bundle/
+
+# Environment files (keep .env.example if you have one)
+.env
+
+

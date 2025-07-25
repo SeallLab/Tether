@@ -4,6 +4,9 @@
     "module": "NodeNext",
     "outDir": "../../dist-electron",
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    // Let ESLint handle unused variables as warnings instead of TypeScript errors
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   }
 }
