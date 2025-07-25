@@ -62,6 +62,10 @@ export class PythonServerService {
       console.log('[PythonServerService] DEBUG: Using development server path:', this.serverPath);
     }
 
+    // Detect and configure Python executable
+    const pythonInfo = this.detectPythonExecutable();
+    this.config.pythonPath = pythonInfo.pythonPath;
+
     // Virtual environment path - in packaged apps, create in user data directory
     if (this.isPackaged) {
       const userDataPath = app.getPath('userData');
@@ -71,7 +75,7 @@ export class PythonServerService {
       this.venvPath = path.join(this.serverPath, this.config.venvName);
     }
     
-    // Determine Python executable path based on platform
+    // Determine Python executable path for virtual environment
     const isWindows = process.platform === 'win32';
     this.pythonExecutable = isWindows 
       ? path.join(this.venvPath, 'Scripts', 'python.exe')
@@ -79,6 +83,7 @@ export class PythonServerService {
       
     console.log(`[PythonServerService] Running in ${this.isPackaged ? 'packaged' : 'development'} mode`);
     console.log(`[PythonServerService] Server path: ${this.serverPath}`);
+    console.log(`[PythonServerService] Python for venv creation: ${this.config.pythonPath}`);
     console.log(`[PythonServerService] Virtual env path: ${this.venvPath}`);
     console.log(`[PythonServerService] Python executable: ${this.pythonExecutable}`);
     console.log(`[PythonServerService] Platform: ${process.platform}`);
@@ -89,6 +94,96 @@ export class PythonServerService {
       console.log(`[PythonServerService] DEBUG: Virtual env exists: ${fs.existsSync(this.venvPath)}`);
       console.log(`[PythonServerService] DEBUG: Python executable exists: ${fs.existsSync(this.pythonExecutable)}`);
     }
+  }
+
+  private detectPythonExecutable(): { pythonPath: string; isBundled: boolean } {
+    console.log('[PythonServerService] DEBUG: Detecting Python executable...');
+    
+    // Check for bundled Python first
+    if (this.isPackaged) {
+      const bundledPythonPath = this.findBundledPython();
+      if (bundledPythonPath) {
+        console.log('[PythonServerService] ✅ Found bundled Python:', bundledPythonPath);
+        return { pythonPath: bundledPythonPath, isBundled: true };
+      }
+    }
+
+    // In development, check if there's a bundled Python for testing
+    if (!this.isPackaged) {
+      const devBundledPythonPath = this.findDevBundledPython();
+      if (devBundledPythonPath) {
+        console.log('[PythonServerService] ✅ Found development bundled Python:', devBundledPythonPath);
+        return { pythonPath: devBundledPythonPath, isBundled: true };
+      }
+    }
+
+    // Fallback to system Python
+    console.log('[PythonServerService] Using system Python (no bundled Python found)');
+    return { pythonPath: this.config.pythonPath || 'python3', isBundled: false };
+  }
+
+  private findBundledPython(): string | null {
+    const currentPlatform = `${process.platform}-${process.arch}`;
+    console.log('[PythonServerService] DEBUG: Looking for bundled Python for platform:', currentPlatform);
+    
+    const bundlePath = path.join(process.resourcesPath, 'python-bundle', currentPlatform);
+    console.log('[PythonServerService] DEBUG: Bundle path:', bundlePath);
+    
+    if (!fs.existsSync(bundlePath)) {
+      console.log('[PythonServerService] DEBUG: Bundle path does not exist');
+      return null;
+    }
+
+    // Different executable paths for different platforms
+    const possiblePaths = [
+      path.join(bundlePath, 'python', 'bin', 'python3'),      // Linux standalone
+      path.join(bundlePath, 'python', 'bin', 'python'),       // Linux standalone alt
+      path.join(bundlePath, 'python.exe'),                    // Windows embeddable
+      path.join(bundlePath, 'Scripts', 'python.exe'),         // Windows alt
+      path.join(bundlePath, 'bin', 'python3'),                // General Unix
+      path.join(bundlePath, 'bin', 'python'),                 // General Unix alt
+    ];
+
+    for (const pythonPath of possiblePaths) {
+      console.log('[PythonServerService] DEBUG: Checking:', pythonPath);
+      if (fs.existsSync(pythonPath)) {
+        console.log('[PythonServerService] DEBUG: Found bundled Python at:', pythonPath);
+        return pythonPath;
+      }
+    }
+
+    console.log('[PythonServerService] DEBUG: No bundled Python executable found');
+    return null;
+  }
+
+  private findDevBundledPython(): string | null {
+    const currentPlatform = `${process.platform}-${process.arch}`;
+    const appRoot = path.join(__dirname, '..', '..', '..', '..');
+    const bundlePath = path.join(appRoot, 'python-bundle', currentPlatform);
+    
+    console.log('[PythonServerService] DEBUG: Looking for dev bundled Python at:', bundlePath);
+    
+    if (!fs.existsSync(bundlePath)) {
+      return null;
+    }
+
+    // Same logic as findBundledPython but for development
+    const possiblePaths = [
+      path.join(bundlePath, 'python', 'bin', 'python3'),
+      path.join(bundlePath, 'python', 'bin', 'python'),
+      path.join(bundlePath, 'python.exe'),
+      path.join(bundlePath, 'Scripts', 'python.exe'),
+      path.join(bundlePath, 'bin', 'python3'),
+      path.join(bundlePath, 'bin', 'python'),
+    ];
+
+    for (const pythonPath of possiblePaths) {
+      if (fs.existsSync(pythonPath)) {
+        return pythonPath;
+      }
+    }
+
+    return null;
   }
 
   async initialize(): Promise<void> {
@@ -306,6 +401,26 @@ export class PythonServerService {
       GOOGLE_API_KEY: envVars.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***'
     });
 
+    // Check if vector store already exists from build-time indexing
+    const vectorStorePath = envVars.VECTOR_STORE_PATH;
+    console.log('[PythonServerService] DEBUG: Checking for existing vector store at:', vectorStorePath);
+    
+    if (fs.existsSync(vectorStorePath)) {
+      const vectorStoreFiles = fs.readdirSync(vectorStorePath);
+      const hasFaissIndex = vectorStoreFiles.some(file => file.includes('index'));
+      
+      if (hasFaissIndex) {
+        console.log('[PythonServerService] ✅ Found existing vector store from build-time indexing');
+        console.log('[PythonServerService] Skipping runtime PDF indexing (using pre-indexed data)');
+        this.isIndexingComplete = true;
+        return;
+      } else {
+        console.log('[PythonServerService] Vector store directory exists but appears empty');
+      }
+    } else {
+      console.log('[PythonServerService] No existing vector store found');
+    }
+
     // Check if Google API key is available
     if (!envVars.GOOGLE_API_KEY) {
       console.warn('[PythonServerService] WARNING: Google API key not available, skipping PDF indexing');
@@ -319,12 +434,16 @@ export class PythonServerService {
       ? path.join(process.resourcesPath, 'rag', 'pdfs')
       : path.join(this.serverPath, '..', 'rag', 'pdfs');
     
-    // Use the vector store path from environment variables
-    const vectorStorePath = envVars.VECTOR_STORE_PATH;
-    
     console.log('[PythonServerService] DEBUG: PDF directory path:', pdfDirectory);
     console.log('[PythonServerService] DEBUG: Vector store output path:', vectorStorePath);
     console.log('[PythonServerService] DEBUG: PDF directory exists:', fs.existsSync(pdfDirectory));
+
+    if (!fs.existsSync(pdfDirectory)) {
+      console.warn('[PythonServerService] WARNING: PDF directory not found, skipping indexing');
+      console.warn('[PythonServerService] WARNING: RAG features will not work');
+      this.isIndexingComplete = false;
+      return;
+    }
 
     return new Promise((resolve, reject) => {
       const indexArgs = [
@@ -333,7 +452,8 @@ export class PythonServerService {
         '--output', vectorStorePath
       ];
       
-      console.log('[PythonServerService] DEBUG: Running indexing with args:', indexArgs);
+      console.log('[PythonServerService] DEBUG: Running runtime indexing with args:', indexArgs);
+      console.log('[PythonServerService] This may take a while for large PDF collections...');
       
       const indexProcess = spawn(this.pythonExecutable, indexArgs, {
         cwd: this.serverPath,
@@ -519,9 +639,32 @@ export class PythonServerService {
     console.log('[PythonServerService] DEBUG: getEnvironmentVariables called');
     
     // Use appropriate paths for packaged vs development
-    const vectorStorePath = this.isPackaged 
-      ? path.join(app.getPath('userData'), 'python-server', 'vector_store')
-      : path.join(this.serverPath, 'vector_store');
+    let vectorStorePath: string;
+    
+    if (this.isPackaged) {
+      // First check for build-time vector store in packaged resources
+      const packagedVectorStorePath = path.join(process.resourcesPath, 'server', 'vector_store');
+      const userDataVectorStorePath = path.join(app.getPath('userData'), 'python-server', 'vector_store');
+      
+      // Check if build-time vector store exists and has index files
+      if (fs.existsSync(packagedVectorStorePath)) {
+        const vectorStoreFiles = fs.readdirSync(packagedVectorStorePath);
+        const hasFaissIndex = vectorStoreFiles.some(file => file.includes('index'));
+        
+        if (hasFaissIndex) {
+          console.log('[PythonServerService] DEBUG: Using build-time vector store from packaged resources');
+          vectorStorePath = packagedVectorStorePath;
+        } else {
+          console.log('[PythonServerService] DEBUG: Packaged vector store exists but appears empty, using user data path');
+          vectorStorePath = userDataVectorStorePath;
+        }
+      } else {
+        console.log('[PythonServerService] DEBUG: No packaged vector store found, using user data path');
+        vectorStorePath = userDataVectorStorePath;
+      }
+    } else {
+      vectorStorePath = path.join(this.serverPath, 'vector_store');
+    }
     
     const databasePath = this.isPackaged 
       ? path.join(app.getPath('userData'), 'python-server', 'db', 'dev.db')
@@ -530,19 +673,25 @@ export class PythonServerService {
     console.log('[PythonServerService] DEBUG: Vector store path:', vectorStorePath);
     console.log('[PythonServerService] DEBUG: Database path:', databasePath);
 
-    // Ensure directories exist
+    // Ensure directories exist (only for user data paths, not packaged resources)
     if (this.isPackaged) {
-      const vectorStoreDir = path.dirname(vectorStorePath);
       const dbDir = path.dirname(databasePath);
       
       console.log('[PythonServerService] DEBUG: Creating directories...');
-      console.log('  - Vector store dir:', vectorStoreDir);
+      console.log('  - Vector store path:', vectorStorePath);
       console.log('  - DB dir:', dbDir);
       
-      if (!fs.existsSync(vectorStoreDir)) {
-        fs.mkdirSync(vectorStoreDir, { recursive: true });
-        console.log('[PythonServerService] DEBUG: Created vector store directory');
+      // Only create vector store directory if it's in user data (writable)
+      if (vectorStorePath.includes(app.getPath('userData'))) {
+        const vectorStoreDir = path.dirname(vectorStorePath);
+        if (!fs.existsSync(vectorStoreDir)) {
+          fs.mkdirSync(vectorStoreDir, { recursive: true });
+          console.log('[PythonServerService] DEBUG: Created vector store directory');
+        }
+      } else {
+        console.log('[PythonServerService] DEBUG: Using read-only packaged vector store');
       }
+      
       if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
         console.log('[PythonServerService] DEBUG: Created database directory');
