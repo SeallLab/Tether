@@ -1,0 +1,121 @@
+name: Automatic Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'app/**'  # Only trigger when changes are made to the app directory
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    permissions:
+      contents: write  # Required to create releases and commit changes
+    
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper versioning
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            server/requirements.txt
+      
+      - name: Install Python dependencies
+        run: |
+          cd server
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Install Node.js dependencies
+        run: |
+          cd app
+          npm ci
+
+      - name: Automatic versioning
+        id: versioning
+        run: |
+          cd app
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          if [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
+            # Initial version
+            NEW_VERSION="0.1.0"
+          else
+            # Parse current version
+            IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+            MAJOR="${VERSION_PARTS[0]}"
+            MINOR="${VERSION_PARTS[1]}"
+            PATCH="${VERSION_PARTS[2]}"
+            
+            # Increment patch version
+            PATCH=$((PATCH + 1))
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          
+          # Update package.json
+          node -e "const fs=require('fs');const pkg=require('./package.json');pkg.version='$NEW_VERSION';fs.writeFileSync('./package.json',JSON.stringify(pkg,null,2)+'\n')"
+          
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Commit version update
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add app/package.json
+          git commit -m "Bump version to ${{ steps.versioning.outputs.VERSION }} [skip ci]"
+          git push
+      
+      - name: Create Tag
+        run: |
+          git tag v${{ steps.versioning.outputs.VERSION }}
+          git push --tags
+      
+      - name: Build DMG
+        run: |
+          cd app
+          npm run dist:mac
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.versioning.outputs.VERSION }}
+          name: Release v${{ steps.versioning.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            app/dist/*.dmg
+          # Make the release public even though the repo is private
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Setting public to true for the release
+          make_latest: true
+      
+      - name: Set release visibility to public
+        run: |
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }} \
+            -f private=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
