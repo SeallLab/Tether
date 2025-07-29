@@ -46,6 +46,13 @@ jobs:
           cd app
           npm ci
 
+      # Create .env file with secrets
+      - name: Create .env file
+        run: |
+          cd app
+          echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" > .env
+          echo "Created .env file with API key"
+
       - name: Automatic versioning
         id: versioning
         run: |
