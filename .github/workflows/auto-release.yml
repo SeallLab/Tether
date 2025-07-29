@@ -1,25 +1,19 @@
-name: Automatic Build and Release
+name: Build and Release
 
 on:
   push:
-    branches:
-      - main
-      - master
-    paths:
-      - 'app/**'  # Only trigger when changes are made to the app directory
+    tags:
+      - 'v*' # Only trigger when tags like v1.0.0 are pushed
 
 jobs:
   build-and-release:
     runs-on: macos-latest
     permissions:
-      contents: write  # Required to create releases and commit changes
+      contents: write  # Required to create releases
     
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history for proper versioning
-          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -54,99 +48,9 @@ jobs:
           echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" > .env
           echo "Created .env file with API key"
 
-      - name: Check if version needs bumping
-        id: version_check
-        run: |
-          cd app
-          
-          # Get current version from package.json
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $CURRENT_VERSION"
-          
-          # Check if the latest commit is already a version bump commit
-          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
-          if [[ "$LAST_COMMIT_MSG" == *"Bump version to"* && "$LAST_COMMIT_MSG" == *"[skip ci]"* ]]; then
-            echo "Last commit was a version bump, skipping versioning"
-            echo "SKIP_VERSION=true" >> $GITHUB_OUTPUT
-            echo "VERSION=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # Check if a tag already exists for current version
-          if git tag --list | grep -q "^v${CURRENT_VERSION}$"; then
-            echo "Tag v${CURRENT_VERSION} already exists, need to bump version"
-            NEEDS_BUMP=true
-          else
-            echo "No tag exists for current version, checking if we should bump"
-            # If version is 0.0.0, we should bump to 0.1.0
-            if [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
-              NEEDS_BUMP=true
-            else
-              NEEDS_BUMP=false
-            fi
-          fi
-          
-          if [[ "$NEEDS_BUMP" == "true" ]]; then
-            if [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
-              NEW_VERSION="0.1.0"
-            else
-              # Parse current version and increment patch
-              IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
-              MAJOR="${VERSION_PARTS[0]}"
-              MINOR="${VERSION_PARTS[1]}"
-              PATCH="${VERSION_PARTS[2]}"
-              PATCH=$((PATCH + 1))
-              NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-            fi
-            
-            echo "New version: $NEW_VERSION"
-            echo "SKIP_VERSION=false" >> $GITHUB_OUTPUT
-            echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "Using current version: $CURRENT_VERSION"
-            echo "SKIP_VERSION=true" >> $GITHUB_OUTPUT
-            echo "VERSION=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Update version in package.json
-        if: steps.version_check.outputs.SKIP_VERSION == 'false'
-        run: |
-          cd app
-          NEW_VERSION="${{ steps.version_check.outputs.VERSION }}"
-          node -e "const fs=require('fs');const pkg=require('./package.json');pkg.version='$NEW_VERSION';fs.writeFileSync('./package.json',JSON.stringify(pkg,null,2)+'\n')"
-          echo "Updated package.json to version $NEW_VERSION"
-      
-      - name: Commit version update
-        if: steps.version_check.outputs.SKIP_VERSION == 'false'
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          
-          # Check if there are changes to commit
-          if git diff --quiet app/package.json; then
-            echo "No changes to commit"
-            exit 0
-          fi
-          
-          git add app/package.json
-          git commit -m "Bump version to ${{ steps.version_check.outputs.VERSION }} [skip ci]"
-          
-          # Pull latest changes before pushing to avoid conflicts
-          git pull --rebase origin main
-          git push
-      
-      - name: Create Tag
-        run: |
-          VERSION="${{ steps.version_check.outputs.VERSION }}"
-          
-          # Check if tag already exists
-          if git tag --list | grep -q "^v${VERSION}$"; then
-            echo "Tag v${VERSION} already exists, skipping tag creation"
-          else
-            echo "Creating tag v${VERSION}"
-            git tag v${VERSION}
-            git push --tags
-          fi
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
       - name: Build DMG
         run: |
@@ -157,8 +61,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version_check.outputs.VERSION }}
-          name: Release v${{ steps.version_check.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -166,7 +69,6 @@ jobs:
             app/dist/*.dmg
           # Make the release public even though the repo is private
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Setting public to true for the release
           make_latest: true
       
       - name: Set release visibility to public
