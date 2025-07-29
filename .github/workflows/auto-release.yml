@@ -9,7 +9,7 @@ jobs:
   build-and-release:
     runs-on: macos-latest
     permissions:
-      contents: write  # Required to create releases
+      contents: write 
     
     steps:
       - name: Check out Git repository
@@ -67,7 +67,6 @@ jobs:
           generate_release_notes: true
           files: |
             app/dist/*.dmg
-          # Make the release public even though the repo is private
           token: ${{ secrets.GITHUB_TOKEN }}
           make_latest: true
       
