@@ -53,7 +53,6 @@ export class ActivityLogger {
       const jsonlData = this.logs.map(log => JSON.stringify(log)).join('\n') + '\n';
       
       await fs.appendFile(filepath, jsonlData, 'utf8');
-      console.log(`[ActivityLogger] Flushed ${this.logs.length} logs to ${filename}`);
       
       this.logs = []; // Clear the buffer
     } catch (error) {
