@@ -56,6 +56,12 @@ jobs:
         run: |
           cd app
           npm run dist:mac
+          
+      - name: Package App
+        run: |
+          cd app/dist/mac
+          # Find the .app directory and zip it
+          find . -name "*.app" -type d | head -1 | xargs -I {} zip -r "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" "{}"
       
       - name: Create Release
         id: create_release
@@ -69,9 +75,10 @@ jobs:
             ## Installation Instructions
             
             ### For macOS Users:
-            1. Download the `Tether.app` file below
-            2. Move it to your Applications folder
-            3. Right-click and select "Open" (first time only due to unsigned app)
+            1. Download the `Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip` file below
+            2. Double-click to extract the zip file
+            3. Move `Tether.app` to your Applications folder
+            4. Right-click and select "Open" (first time only due to unsigned app)
             
             **Note:** The app is unsigned, so macOS may show a security warning on first launch.
             Just right-click → "Open" → "Open" to bypass this warning.
@@ -79,9 +86,8 @@ jobs:
             ### What's New:
             See the auto-generated release notes below.
           files: |
-            app/dist/mac/*.app
+            app/dist/mac/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
-          make_latest: true
       
       - name: Set release visibility to public
         run: |
