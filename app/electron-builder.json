@@ -47,7 +47,7 @@
   ],
   "icon": "./tether.png",
   "mac": {
-    "target": "dmg"
+    "target": "dir"
   },
   "win": {
     "target": ["portable", "msi"]

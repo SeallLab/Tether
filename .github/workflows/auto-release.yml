@@ -52,7 +52,7 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
-      - name: Build DMG
+      - name: Build App
         run: |
           cd app
           npm run dist:mac
@@ -65,8 +65,21 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          body: |
+            ## Installation Instructions
+            
+            ### For macOS Users:
+            1. Download the `Tether.app` file below
+            2. Move it to your Applications folder
+            3. Right-click and select "Open" (first time only due to unsigned app)
+            
+            **Note:** The app is unsigned, so macOS may show a security warning on first launch.
+            Just right-click → "Open" → "Open" to bypass this warning.
+            
+            ### What's New:
+            See the auto-generated release notes below.
           files: |
-            app/dist/*.dmg
+            app/dist/mac/*.app
           token: ${{ secrets.GITHUB_TOKEN }}
           make_latest: true
       
