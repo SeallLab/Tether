@@ -59,9 +59,17 @@ jobs:
           
       - name: Package App
         run: |
-          cd app/dist/mac
+          cd app/dist
+          # List directories to see what was created
+          ls -la
+          # Find the mac build directory (could be mac, mac-arm64, mac-universal, etc.)
+          MAC_DIR=$(find . -name "mac*" -type d | head -1)
+          echo "Found Mac directory: $MAC_DIR"
+          cd "$MAC_DIR"
           # Find the .app directory and zip it
           find . -name "*.app" -type d | head -1 | xargs -I {} zip -r "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" "{}"
+          # Move zip to parent dist directory for easier access
+          mv "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" ../
       
       - name: Create Release
         id: create_release
@@ -86,7 +94,7 @@ jobs:
             ### What's New:
             See the auto-generated release notes below.
           files: |
-            app/dist/mac/*.zip
+            app/dist/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set release visibility to public
