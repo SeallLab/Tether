@@ -66,8 +66,22 @@ jobs:
           MAC_DIR=$(find . -name "mac*" -type d | head -1)
           echo "Found Mac directory: $MAC_DIR"
           cd "$MAC_DIR"
-          # Find the .app directory and zip it
-          find . -name "*.app" -type d | head -1 | xargs -I {} zip -r "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" "{}"
+          
+          # Create installation script
+          cat > install-tether.sh << 'EOF'
+          #!/bin/bash
+          echo "Installing Tether..."
+          echo "Removing quarantine attributes..."
+          xattr -cr Tether.app
+          echo "Moving to Applications folder..."
+          mv Tether.app /Applications/
+          echo "Done! You can now run Tether from your Applications folder."
+          EOF
+          chmod +x install-tether.sh
+          
+          # Find the .app directory and zip it with the install script
+          APP_NAME=$(find . -name "*.app" -type d | head -1)
+          zip -r "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" "$APP_NAME" install-tether.sh
           # Move zip to parent dist directory for easier access
           mv "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" ../
       
@@ -83,13 +97,24 @@ jobs:
             ## Installation Instructions
             
             ### For macOS Users:
+            
+            **Easy Installation (Recommended):**
             1. Download the `Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip` file below
             2. Double-click to extract the zip file
-            3. Move `Tether.app` to your Applications folder
-            4. Right-click and select "Open" (first time only due to unsigned app)
+            3. Double-click `install-tether.sh` script (it will handle everything automatically)
+            4. Run Tether from your Applications folder!
             
-            **Note:** The app is unsigned, so macOS may show a security warning on first launch.
-            Just right-click → "Open" → "Open" to bypass this warning.
+            **Manual Installation:**
+            1. Download and extract the zip file
+            2. Open Terminal and run: `xattr -cr Tether.app` (removes quarantine)
+            3. Move `Tether.app` to your Applications folder
+            4. Double-click to run
+            
+            **If you still get warnings:**
+            - Right-click Tether.app → "Open" → "Open" when the warning appears
+            - Or go to System Preferences → Security & Privacy → General → Click "Open Anyway"
+            
+            **Note:** The app is unsigned, which causes macOS security warnings. The `xattr` command removes the quarantine flag that prevents unsigned apps from running.
             
             ### What's New:
             See the auto-generated release notes below.
