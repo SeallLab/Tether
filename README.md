@@ -1,18 +1,55 @@
 # Tether
 A productivity dock designed specifically for software engineers with ADHD. Tether provides ambient activity monitoring, AI-powered assistance, and gamified focus rewards to help you stay on track.
 
-## 🚀 First Time Setup
+## First Time Setup
 
 **Important:** When you first open Tether, it may take 30-60 seconds to fully initialize. The app is setting up its Python backend and indexing research documents in the background. Be patient during this initial startup!
 
-## ✨ Core Features
+### Getting Started
+1. **Launch Tether** - The dock will appear as a small floating panel
+2. **First Run**: Wait for initial setup (30-60 seconds)
+3. **Set Up Permissions** - Go to System Settings and grant the required permissions (see below)
+4. **Restart Tether** - After setting up permissions, quit and relaunch the app
+5. **Position the Dock** - Drag it to your preferred screen location
 
-### 📊 Smart Activity Monitoring
+## macOS Permissions Setup
+
+Tether needs several permissions to work properly. While macOS may prompt you automatically, it's recommended to set these up manually in System Settings:
+
+### Required Permissions
+
+1. **Notifications**
+   - Go to **System Settings** > **Notifications**
+   - Find **Tether** in the list and click it
+   - Enable **Allow notifications**
+   - Recommended: Enable **Badges**, **Sounds**, and **Banners**
+
+2. **Accessibility** (for advanced window tracking)
+   - Go to **System Settings** > **Privacy & Security** > **Accessibility**
+   - Click the **+** button and add **Tether**
+   - Or check the box next to **Tether** if it's already listed
+
+### After Granting Permissions
+
+- **Always restart Tether** after changing permissions in System Settings
+- Quit the app completely and relaunch it for permissions to take effect
+
+### Troubleshooting Permissions
+
+If activity monitoring or notifications aren't working:
+1. Check that **Accessibility** permission is enabled
+2. Check that **Notifications** permission is enabled  
+3. Restart Tether completely (quit and relaunch)
+4. If issues persist, try removing and re-adding the permissions in System Settings
+
+## Core Features
+
+### Smart Activity Monitoring
 - **Automatic Tracking**: Tether quietly monitors your window switching and application usage
 - **Focus Detection**: Identifies productive vs. distracting activities
 - **No Manual Input**: Everything happens automatically in the background
 
-### 🤖 AI Chat Assistant
+### AI Chat Assistant
 - **Click the chat bubble** in the dock to open your personal AI assistant
 - **Ask questions like:**
   - "How can I improve my focus today?"
@@ -22,23 +59,17 @@ A productivity dock designed specifically for software engineers with ADHD. Teth
 - **ADHD-Aware**: The AI understands ADHD challenges and provides tailored advice
 - **Context-Aware**: Uses your activity patterns to give personalized suggestions
 
-### 🎮 Gamification & Rewards
+### Gamification & Rewards
 - **Focus Streaks**: Earn points for maintaining focus on productive tasks
 - **Achievement Badges**: Unlock rewards for hitting productivity milestones
 - **Daily Goals**: Set and track daily focus targets
 - **Visual Progress**: See your productivity stats in real-time
 
-### 🎯 Dock Interface
+### Dock Interface
 - **Always Accessible**: Small, unobtrusive dock that stays on top
-- **Quick Actions**: Access all features without opening full windows
 - **Minimal Distraction**: Designed to help, not hinder your focus
 
-## 🎮 How to Use
-
-### Getting Started
-1. **Launch Tether** - The dock will appear as a small floating panel
-2. **First Run**: Wait for initial setup (30-60 seconds)
-3. **Position the Dock**: Drag it to your preferred screen location
+## How to Use
 
 ### Daily Workflow
 1. **Start Working** - Just begin your normal work routine
@@ -58,14 +89,14 @@ A productivity dock designed specifically for software engineers with ADHD. Teth
 - **Celebrate Wins**: Check your achievements and progress regularly
 - **Set Daily Goals**: Use the rewards system to build consistent habits
 
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Cmd+Shift+D` (Mac) | Toggle dock visibility |
 | `Ctrl+Shift+D` (Windows/Linux) | Toggle dock visibility |
 
-## 💡 ADHD-Specific Benefits
+## ADHD-Specific Benefits
 
 - **Reduces Decision Fatigue**: AI assistant helps with task prioritization
 - **Combats Hyperfocus**: Gentle reminders to take breaks and switch tasks
@@ -73,7 +104,7 @@ A productivity dock designed specifically for software engineers with ADHD. Teth
 - **Provides Structure**: Automatic tracking creates routine without manual effort
 - **Offers Support**: AI understands ADHD challenges and provides empathetic guidance
 
-## 🔧 Settings & Customization
+## Settings & Customization
 
 Access settings through the dock interface to:
 - Adjust activity monitoring sensitivity
@@ -82,7 +113,7 @@ Access settings through the dock interface to:
 - Configure AI assistant behavior
 - Manage rewards and achievements
 
-## ⚠️ Privacy Note
+## Privacy Note
 
 Tether processes all data locally on your machine. Your activity patterns and conversations with the AI assistant never leave your computer.
 
