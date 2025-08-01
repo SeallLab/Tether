@@ -10,16 +10,8 @@ const notificationManager = new NotificationManager(() => windowManager.getMainW
 app.on("ready", async () => {
   // Initialize app manager (loads settings)
   await appManager.initialize();
-  // Create main window
-  const mainWindow = windowManager.createMainWindow();
-  // Start activity monitoring
-  await appManager.startActivityMonitoring();
-  // Setup global shortcuts
-  appManager.setupGlobalShortcuts(() => {
-    windowManager.toggleDockVisibility();
-  });
-
-  // Setup IPC handlers
+  
+  // Setup IPC handlers BEFORE creating the window to avoid timing issues
   const activityService = appManager.getActivityMonitoringService();
   const chatService = activityService.getChatService();
   const settingsService = appManager.getSettingsService();
@@ -37,6 +29,15 @@ app.on("ready", async () => {
     () => windowManager.toggleDockVisibility(),
     () => notificationManager.showDailyPlanNotification()
   );
+
+  // Create main window AFTER handlers are set up
+  const mainWindow = windowManager.createMainWindow();
+  // Start activity monitoring
+  await appManager.startActivityMonitoring();
+  // Setup global shortcuts
+  appManager.setupGlobalShortcuts(() => {
+    windowManager.toggleDockVisibility();
+  });
 
   // Schedule startup notification (30 seconds after app starts)
   notificationManager.scheduleStartupNotification(30000);
