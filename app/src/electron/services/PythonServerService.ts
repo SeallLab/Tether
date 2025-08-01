@@ -37,7 +37,7 @@ export class PythonServerService {
       venvName: 'venv',
       pythonPath: 'python3',
       flaskEnv: process.env.ENV || 'development',
-      googleApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '',
+      googleApiKey: process.env.GOOGLE_API_KEY || '',
       ...config
     };
 

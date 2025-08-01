@@ -21,13 +21,12 @@ export class AppManager {
     this.settingsService = new SettingsService();
     
     // Pass Google API key explicitly to Python server service
-    const googleApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-    console.log('[AppManager] DEBUG: Google API Key loaded:', googleApiKey ? '***SET***' : '***NOT SET***');
-    console.log('[AppManager] DEBUG: All env vars:', {
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? '***SET***' : '***NOT SET***',
-      GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***',
-      ENV: process.env.ENV
-    });
+    const googleApiKey = process.env.GOOGLE_API_KEY || '';
+          console.log('[AppManager] DEBUG: Google API Key loaded:', googleApiKey ? '***SET***' : '***NOT SET***');
+      console.log('[AppManager] DEBUG: All env vars:', {
+        GOOGLE_API_KEY: process.env.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***',
+        ENV: process.env.ENV
+      });
     
     this.pythonServerService = new PythonServerService({
       googleApiKey: googleApiKey
@@ -106,7 +105,6 @@ export class AppManager {
     
     // Log environment variables after loading
     console.log('[AppManager] DEBUG: Environment variables after loading:');
-    console.log('  GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? '***SET***' : '***NOT SET***');
     console.log('  GOOGLE_API_KEY:', process.env.GOOGLE_API_KEY ? '***SET***' : '***NOT SET***');
     console.log('  ENV:', process.env.ENV);
     console.log('  NODE_ENV:', process.env.NODE_ENV);
@@ -136,12 +134,12 @@ export class AppManager {
       console.log('[AppManager] Activity monitoring started successfully');
       
       // Initialize LLM service
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      if (geminiApiKey) {
-        console.log('[AppManager] Found Gemini API key in environment, initializing with Gemini');
-        this.activityMonitoringService.initializeLLM(geminiApiKey);
+      const googleApiKey = process.env.GOOGLE_API_KEY;
+      if (googleApiKey) {
+        console.log('[AppManager] Found Google API key in environment, initializing with Gemini');
+        this.activityMonitoringService.initializeLLM(googleApiKey);
       } else {
-        console.log('[AppManager] No Gemini API key found, using mock provider');
+        console.log('[AppManager] No Google API key found, using mock provider');
         this.activityMonitoringService.initializeLLM();
       }
       console.log('[AppManager] LLM service initialized');
