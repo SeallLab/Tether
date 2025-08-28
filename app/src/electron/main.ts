@@ -12,9 +12,9 @@ const trayManager = new TrayManager(
 );
 
 app.on("ready", async () => {
-  // Set App User Model ID for Windows (for proper taskbar grouping)
+  // Set App User Model ID for Windows (for proper taskbar grouping and notification display)
   if (process.platform === 'win32') {
-    app.setAppUserModelId('com.aarsh.tether');
+    app.setAppUserModelId('Tether');
   }
   
   // Initialize app manager (loads settings)
