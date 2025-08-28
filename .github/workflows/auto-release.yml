@@ -3,39 +3,39 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*' # Only trigger when tags like v1.0.0 are pushed
+      - "v*" # Only trigger when tags like v1.0.0 are pushed
 
 jobs:
-  build-and-release:
+  build-mac:
     runs-on: macos-latest
     permissions:
-      contents: write 
-    
+      contents: write
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
-      
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: app/package-lock.json
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
           cache-dependency-path: |
             server/requirements.txt
-      
+
       - name: Install Python dependencies
         run: |
           cd server
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Install Node.js dependencies
         run: |
           cd app
@@ -51,13 +51,13 @@ jobs:
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      
-      - name: Build App
+
+      - name: Build Mac App
         run: |
           cd app
           npm run dist:mac
-          
-      - name: Package App
+
+      - name: Package Mac App
         run: |
           cd app/dist
           # List directories to see what was created
@@ -66,7 +66,7 @@ jobs:
           MAC_DIR=$(find . -name "mac*" -type d | head -1)
           echo "Found Mac directory: $MAC_DIR"
           cd "$MAC_DIR"
-          
+
           # Create installation script
           cat > install-tether.sh << 'EOF'
           #!/bin/bash
@@ -78,13 +78,144 @@ jobs:
           echo "Done! You can now run Tether from your Applications folder."
           EOF
           chmod +x install-tether.sh
-          
+
           # Find the .app directory and zip it with the install script
           APP_NAME=$(find . -name "*.app" -type d | head -1)
           zip -r "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" "$APP_NAME" install-tether.sh
           # Move zip to parent dist directory for easier access
           mv "Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip" ../
-      
+
+      - name: Upload Mac artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-build
+          path: app/dist/*.zip
+
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: app/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            server/requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          cd server
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Node.js dependencies
+        run: |
+          cd app
+          npm ci
+
+      # Create .env file with secrets
+      - name: Create .env file
+        run: |
+          cd app
+          echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" > .env
+          echo "Created .env file with API key"
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Build Windows App
+        run: |
+          cd app
+          npm run dist:win
+
+      - name: Package Windows App
+        run: |
+          cd app/dist
+          # List files to see what was created
+          Get-ChildItem -Recurse
+
+          # Create installation instructions
+          @"
+          # Tether Installation Instructions for Windows
+
+          ## Quick Install (Recommended)
+          1. Download the Tether installer (.msi file) from the release
+          2. Double-click the .msi file to run the installer
+          3. Follow the installation wizard
+          4. Launch Tether from the Start Menu or Desktop shortcut
+
+          ## Portable Install
+          1. Download the Tether portable (.exe file) from the release  
+          2. Run the .exe file directly - no installation required
+          3. The app will create a data folder in the same directory
+
+          ## Important: Windows Permissions
+          After installation, you may need to grant permissions for Tether to work properly:
+
+          1. **Notifications**: Windows should automatically prompt you to allow notifications
+          2. **Run at Startup** (optional): 
+             - Open Settings > Apps > Startup
+             - Find Tether and toggle it on
+          3. **Windows Defender**: If Windows Defender blocks the app:
+             - Go to Windows Security > Virus & threat protection
+             - Click "Manage settings" under Virus & threat protection settings
+             - Add an exclusion for the Tether installation folder
+
+          The app is unsigned, so Windows may show security warnings. Click "More info" then "Run anyway" to proceed.
+          "@ | Out-File -FilePath "WINDOWS-INSTALL.md" -Encoding UTF8
+
+          # Create a simple zip with all Windows builds
+          $version = "${{ steps.get_version.outputs.VERSION }}"
+          Compress-Archive -Path "*.exe", "*.msi", "WINDOWS-INSTALL.md" -DestinationPath "Tether-v$version-windows.zip"
+        shell: powershell
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: app/dist/*.zip
+
+  create-release:
+    needs: [build-mac, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download Mac artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-build
+          path: ./artifacts/
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: ./artifacts/
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -96,14 +227,41 @@ jobs:
           body: |
             ## Installation Instructions
 
+            ### 🪟 Windows Installation
+
+            **Quick Install (Recommended):**
+            1. Download `Tether-v${{ steps.get_version.outputs.VERSION }}-windows.zip`
+            2. Extract the zip file
+            3. Run the `.msi` installer file
+            4. Follow the installation wizard
+            5. Launch Tether from Start Menu or Desktop shortcut
+
+            **Portable Version:**
+            1. Download `Tether-v${{ steps.get_version.outputs.VERSION }}-windows.zip`
+            2. Extract and run the `.exe` file directly (no installation needed)
+
+            **Windows Security Notes:**
+            - Windows may show security warnings (app is unsigned)
+            - Click "More info" → "Run anyway" to proceed
+            - If Windows Defender blocks it: Add Tether folder to exclusions in Windows Security
+
+            **Permissions Setup:**
+            - **Notifications**: Windows will prompt automatically
+            - **Startup**: Go to Settings > Apps > Startup to enable auto-start
+            - **Accessibility**: No special permissions needed on Windows
+
+            ---
+
+            ### 🍎 macOS Installation
+
             **Recommended Installation (via Terminal):**
 
-            1. Download the `Tether-v0.1.4-mac.zip` file below.
-            2. Double-click the zip file to extract its contents.
-            3. Open **Terminal** (use Spotlight with `Cmd + Space`, type "Terminal").
-            4. Navigate to the folder where you extracted the zip. For example:
+            1. Download `Tether-v${{ steps.get_version.outputs.VERSION }}-mac.zip`
+            2. Extract the zip file
+            3. Open **Terminal** (Cmd + Space, type "Terminal")
+            4. Navigate to extracted folder:
               ```bash
-              cd ~/Downloads/Tether-v0.1.4-mac
+              cd ~/Downloads/Tether-v${{ steps.get_version.outputs.VERSION }}-mac
               ```
             5. Make the install script executable:
               ```bash
@@ -139,17 +297,17 @@ jobs:
 
             ---
 
-            **Note:** The app is unsigned, which is why macOS shows warnings. The steps above remove quarantine flags so the app can launch properly.
+            **Note:** Both versions are unsigned, which triggers security warnings. Follow the platform-specific steps above to bypass these safely.
 
             ---
 
             ### What's New
             See the auto-generated release notes below.
-            
+
           files: |
-            app/dist/*.zip
+            ./artifacts/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Set release visibility to public
         run: |
           gh api \
@@ -158,4 +316,4 @@ jobs:
             /repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }} \
             -f private=false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
