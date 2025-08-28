@@ -32,7 +32,7 @@ export class PythonServerService {
     console.log('[PythonServerService] DEBUG: Constructor called with config:', JSON.stringify(config, null, 2));
     
     this.config = {
-      serverPort: 5001,
+      serverPort: 55555,
       serverHost: '127.0.0.1',
       venvName: 'venv',
       pythonPath: process.platform === 'win32' ? 'python' : 'python3',
