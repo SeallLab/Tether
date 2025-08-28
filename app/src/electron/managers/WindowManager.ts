@@ -29,7 +29,42 @@ export class WindowManager {
     this.setupMainWindowHandlers();
     this.loadMainWindow();
     this.mainWindow.setOpacity(0.9);
+    
+    // Ensure dock stays on top on Windows
+    this.enforceAlwaysOnTop();
+    
     return this.mainWindow;
+  }
+
+  private enforceAlwaysOnTop(): void {
+    if (!this.mainWindow || process.platform !== 'win32') return;
+
+    // Set up periodic checks to ensure the window stays on top (Windows specific)
+    const ensureOnTop = () => {
+      if (this.mainWindow && !this.mainWindow.isDestroyed() && this.mainWindow.isVisible()) {
+        // Force the window to stay on top
+        this.mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      }
+    };
+
+    // Check every 2 seconds
+    const alwaysOnTopInterval = setInterval(ensureOnTop, 2000);
+
+    // Also listen for focus events on other windows to immediately re-assert always on top
+    this.mainWindow.on('blur', () => {
+      setTimeout(() => {
+        if (this.mainWindow && !this.mainWindow.isDestroyed() && this.mainWindow.isVisible()) {
+          this.mainWindow.setAlwaysOnTop(true, 'screen-saver');
+        }
+      }, 100);
+    });
+
+    // Clean up interval when window is closed
+    this.mainWindow.on('closed', () => {
+      clearInterval(alwaysOnTopInterval);
+    });
+
+    console.log('[WindowManager] Windows always-on-top enforcement enabled');
   }
 
   private setupMainWindowHandlers(): void {
@@ -144,6 +179,20 @@ export class WindowManager {
   showMainWindow(): void {
     if (this.mainWindow) {
       this.mainWindow.show();
+      this.mainWindow.focus();
+      // Re-enforce always on top when showing (Windows)
+      if (process.platform === 'win32') {
+        this.mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      }
+    }
+  }
+
+  /**
+   * Force the dock to stay on top (Windows specific)
+   */
+  forceAlwaysOnTop(): void {
+    if (this.mainWindow && process.platform === 'win32') {
+      this.mainWindow.setAlwaysOnTop(true, 'screen-saver');
     }
   }
 } 

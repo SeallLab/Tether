@@ -32,10 +32,10 @@ export class PythonServerService {
     console.log('[PythonServerService] DEBUG: Constructor called with config:', JSON.stringify(config, null, 2));
     
     this.config = {
-      serverPort: 5001,
+      serverPort: 55555,
       serverHost: '127.0.0.1',
       venvName: 'venv',
-      pythonPath: 'python3',
+      pythonPath: process.platform === 'win32' ? 'python' : 'python3',
       flaskEnv: process.env.ENV || 'development',
       googleApiKey: process.env.GOOGLE_API_KEY || '',
       ...config
@@ -119,7 +119,8 @@ export class PythonServerService {
 
     // Fallback to system Python
     console.log('[PythonServerService] Using system Python (no bundled Python found)');
-    return { pythonPath: this.config.pythonPath || 'python3', isBundled: false };
+    const fallbackPython = process.platform === 'win32' ? 'python' : 'python3';
+    return { pythonPath: this.config.pythonPath || fallbackPython, isBundled: false };
   }
 
   private findBundledPython(): string | null {
@@ -583,7 +584,9 @@ export class PythonServerService {
         const isAccessLog = output.includes(' - - [') && output.includes('] "') && output.includes(' HTTP/1.1" ');
         const isFlaskStartupInfo = output.includes('* Serving Flask app') || 
                                    output.includes('* Debug mode:') ||
-                                   output.includes('* Running on');
+                                   output.includes('* Running on') ||
+                                   output.includes('* Debugger is active!') ||
+                                   output.includes('* Debugger PIN:');
         const isSSLWarning = output.includes('NotOpenSSLWarning') || output.includes('urllib3') || output.includes('LibreSSL');
         const isVectorStoreWarning = output.includes('Vector store directory not found') || 
                                      output.includes('Make sure to run the indexing script');

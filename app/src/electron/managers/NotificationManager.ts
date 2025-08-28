@@ -1,4 +1,4 @@
-import { Notification, BrowserWindow } from 'electron';
+import { Notification, BrowserWindow, app } from 'electron';
 
 export class NotificationManager {
   private startupNotificationTimer: NodeJS.Timeout | null = null;
@@ -40,6 +40,7 @@ export class NotificationManager {
       if (mainWindow) {
         // Send message to main window to show chat dialog
         mainWindow.webContents.send('show-chat-dialog', 'daily-plan');
+        app.focus({ steal: true });
         // Show the main window if it's hidden
         mainWindow.show();
         mainWindow.focus();

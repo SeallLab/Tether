@@ -151,3 +151,5 @@ app/chat_logs.json
 
 **/python-bundle/
 **/build-venv/
+
+**/dist-packages/**

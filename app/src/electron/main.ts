@@ -1,13 +1,22 @@
 import { app } from "electron";
-import { AppManager, WindowManager, NotificationManager } from './managers/index.js';
+import { AppManager, WindowManager, NotificationManager, TrayManager } from './managers/index.js';
 import { setupActivityHandlers, setupLLMHandlers, setupWindowHandlers, setupChatHandlers, setupSettingsHandlers, setupNotificationHandlers, setupPythonServerHandlers, setupGamificationHandlers } from './handlers/index.js';
 
 // Initialize managers
 const appManager = new AppManager();
 const windowManager = new WindowManager(appManager.getPreloadPath());
 const notificationManager = new NotificationManager(() => windowManager.getMainWindow());
+const trayManager = new TrayManager(
+  () => windowManager.getMainWindow(),
+  () => windowManager.toggleDockVisibility()
+);
 
 app.on("ready", async () => {
+  // Set App User Model ID for Windows (for proper taskbar grouping and notification display)
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('Tether');
+  }
+  
   // Initialize app manager (loads settings)
   await appManager.initialize();
   
@@ -32,6 +41,12 @@ app.on("ready", async () => {
 
   // Create main window AFTER handlers are set up
   const mainWindow = windowManager.createMainWindow();
+  
+  // Create system tray for easy access
+  if (process.platform === 'win32') {
+    trayManager.createTray();
+  }
+  
   // Start activity monitoring
   await appManager.startActivityMonitoring();
   // Setup global shortcuts
@@ -64,6 +79,11 @@ app.on('before-quit', async (event) => {
     
     // Clear any timers or notifications
     notificationManager.clearStartupTimer();
+    
+    // Destroy system tray
+    if (process.platform === 'win32') {
+      trayManager.destroy();
+    }
     
     // Unregister global shortcuts
     const { globalShortcut } = await import('electron');
