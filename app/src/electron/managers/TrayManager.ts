@@ -167,6 +167,10 @@ export class TrayManager {
     if (mainWindow) {
       mainWindow.show();
       mainWindow.focus();
+      // Force always on top on Windows
+      if (process.platform === 'win32') {
+        mainWindow.setAlwaysOnTop(true, 'screen-saver');
+      }
       this.updateContextMenu();
     }
   }
