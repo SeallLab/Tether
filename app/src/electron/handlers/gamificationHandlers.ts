@@ -5,6 +5,14 @@ import type { NotificationService } from '../services/NotificationService.js';
 
 export function setupGamificationHandlers(gamificationService: GamificationService, notificationService?: NotificationService) {
   
+  // Helper function to ensure gamification service is loaded
+  const ensureGamificationLoaded = async () => {
+    if (!gamificationService.isDataLoaded()) {
+      console.log('[GamificationHandlers] Gamification data not loaded yet, attempting to load...');
+      await gamificationService.load();
+    }
+  };
+
   // Helper function to send achievement notifications
   const sendAchievementNotification = async (title: string, body: string) => {
     try {
@@ -33,6 +41,8 @@ export function setupGamificationHandlers(gamificationService: GamificationServi
   // Get all gamification data
   ipcMain.handle(IPC_CHANNELS.GET_GAMIFICATION_DATA, async () => {
     try {
+      await ensureGamificationLoaded();
+      
       const data = gamificationService.getData();
       const themes = gamificationService.getThemes();
       const currentTheme = gamificationService.getCurrentTheme();
@@ -76,6 +86,7 @@ export function setupGamificationHandlers(gamificationService: GamificationServi
   // Unlock a theme
   ipcMain.handle(IPC_CHANNELS.UNLOCK_THEME, async (event, themeId) => {
     try {
+      await ensureGamificationLoaded();
       const success = await gamificationService.unlockTheme(themeId);
       if (success) {
         const updatedData = gamificationService.getData();
@@ -92,6 +103,7 @@ export function setupGamificationHandlers(gamificationService: GamificationServi
   // Set dock theme
   ipcMain.handle(IPC_CHANNELS.SET_DOCK_THEME, async (event, themeId) => {
     try {
+      await ensureGamificationLoaded();
       const success = await gamificationService.setDockTheme(themeId);
       if (success) {
         const currentTheme = gamificationService.getCurrentTheme();
@@ -115,6 +127,7 @@ export function setupGamificationHandlers(gamificationService: GamificationServi
   // Complete a quest (typically called internally)
   ipcMain.handle(IPC_CHANNELS.COMPLETE_QUEST, async (event, questId) => {
     try {
+      await ensureGamificationLoaded();
       // This would typically be handled automatically by the gamification service
       // but we can expose it for manual testing or special cases
       const data = gamificationService.getData();
@@ -147,6 +160,7 @@ export function setupGamificationHandlers(gamificationService: GamificationServi
   // Earn a badge (typically called internally)
   ipcMain.handle(IPC_CHANNELS.EARN_BADGE, async (event, badgeId) => {
     try {
+      await ensureGamificationLoaded();
       const data = gamificationService.getData();
       const badge = data.badges.find(b => b.id === badgeId);
       

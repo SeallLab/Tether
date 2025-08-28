@@ -272,6 +272,13 @@ export class GamificationService {
   }
 
   /**
+   * Check if gamification data is loaded
+   */
+  isDataLoaded(): boolean {
+    return this.isLoaded;
+  }
+
+  /**
    * Get all gamification data
    */
   getData(): GamificationData {

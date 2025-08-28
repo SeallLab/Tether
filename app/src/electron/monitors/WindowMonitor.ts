@@ -2,6 +2,9 @@ import { BaseMonitor } from './BaseMonitor.js';
 import { ActivityType, WindowData } from '../../shared/types.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 const execAsync = promisify(exec);
 
@@ -188,33 +191,65 @@ export class WindowMonitor extends BaseMonitor {
         }
       `;
 
-      const { stdout } = await execAsync(`powershell -Command "${script.replace(/\n/g, ' ').replace(/"/g, '\\"')}"`);
+      // Use a more robust PowerShell execution approach
+      // Write the script to a temporary file to avoid quote escaping issues
+      const tempScriptPath = path.join(os.tmpdir(), `tether-window-${Date.now()}.ps1`);
       
-      const output = stdout.trim();
-      
-      if (output.startsWith('ERROR|')) {
-        console.warn('[WindowMonitor] No active window found');
-        return null;
+      try {
+        // Write script to temporary file
+        fs.writeFileSync(tempScriptPath, script, 'utf8');
+        
+        // Execute the script file
+        const { stdout } = await execAsync(`powershell -ExecutionPolicy Bypass -File "${tempScriptPath}"`);
+        
+        const output = stdout.trim();
+        
+        // Clean up temp file
+        try {
+          fs.unlinkSync(tempScriptPath);
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+        
+        if (output.startsWith('ERROR|')) {
+          console.warn('[WindowMonitor] No active window found');
+          return null;
+        }
+        
+        const parts = output.split('|');
+        if (parts.length < 4) {
+          console.warn('[WindowMonitor] Unexpected PowerShell output format');
+          return null;
+        }
+        
+        const [appDisplayName, windowTitle, processName, processId] = parts;
+        
+        return {
+          application_name: appDisplayName || 'Unknown',
+          window_title: windowTitle || 'No Window',
+          process_name: processName || 'unknown',
+          window_bounds: undefined // Could be implemented if needed
+        };
+        
+      } catch (scriptError) {
+        // Clean up temp file in case of error
+        try {
+          fs.unlinkSync(tempScriptPath);
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+        throw scriptError;
       }
-      
-      const parts = output.split('|');
-      if (parts.length < 4) {
-        console.warn('[WindowMonitor] Unexpected PowerShell output format');
-        return null;
-      }
-      
-      const [appDisplayName, windowTitle, processName, processId] = parts;
-      
-      return {
-        application_name: appDisplayName || 'Unknown',
-        window_title: windowTitle || 'No Window',
-        process_name: processName || 'unknown',
-        window_bounds: undefined // Could be implemented if needed
-      };
       
     } catch (error) {
       console.error('[WindowMonitor] Windows window detection failed:', error);
-      return null;
+      // Return a fallback window data to prevent spam
+      return {
+        application_name: 'Unknown',
+        window_title: 'Window Detection Failed',
+        process_name: 'unknown',
+        window_bounds: undefined
+      };
     }
   }
 

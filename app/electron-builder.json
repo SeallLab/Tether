@@ -1,8 +1,10 @@
 {
   "appId": "com.aarsh.tether",
+  "productName": "Tether",
   "files": [
     "dist-react/**/*",
     "dist-electron/**/*",
+    "tether.png",
     "../server/**/*",
     "../rag/**/*",
     "python-bundle/**/*",
@@ -43,6 +45,10 @@
       "from": ".env",
       "to": ".env",
       "filter": ["**/*"]
+    },
+    {
+      "from": "tether.png",
+      "to": "tether.png"
     }
   ],
   "icon": "./tether.png",
@@ -50,7 +56,8 @@
     "target": "dir"
   },
   "win": {
-    "target": ["portable", "msi"]
+    "target": ["portable", "msi"],
+    "icon": "./tether.png"
   },
   "linux": {
     "target": "AppImage",
