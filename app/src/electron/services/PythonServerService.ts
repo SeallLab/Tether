@@ -27,6 +27,7 @@ export class PythonServerService {
   private isServerRunning = false;
   private isIndexingComplete = false;
   private isPackaged: boolean;
+  private isInitializing = false;
 
   constructor(config: Partial<PythonServerConfig> = {}) {
     console.log('[PythonServerService] DEBUG: Constructor called with config:', JSON.stringify(config, null, 2));
@@ -189,6 +190,19 @@ export class PythonServerService {
 
   async initialize(): Promise<void> {
     console.log('[PythonServerService] DEBUG: Initialize called');
+    
+    // Prevent multiple simultaneous initialization attempts
+    if (this.isInitializing) {
+      console.log('[PythonServerService] Initialization already in progress, skipping...');
+      return;
+    }
+    
+    if (this.isServerRunning) {
+      console.log('[PythonServerService] Server already running, skipping initialization...');
+      return;
+    }
+    
+    this.isInitializing = true;
     console.log('[PythonServerService] Initializing Python server service...');
     
     try {
@@ -230,6 +244,8 @@ export class PythonServerService {
       console.error('[PythonServerService] ERROR: Failed to initialize:', error);
       console.error('[PythonServerService] ERROR: Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
+    } finally {
+      this.isInitializing = false;
     }
   }
 
@@ -590,6 +606,10 @@ export class PythonServerService {
         const isSSLWarning = output.includes('NotOpenSSLWarning') || output.includes('urllib3') || output.includes('LibreSSL');
         const isVectorStoreWarning = output.includes('Vector store directory not found') || 
                                      output.includes('Make sure to run the indexing script');
+        const isGoogleCloudWarning = output.includes('ALTS creds ignored') || 
+                                     output.includes('absl::InitializeLog') ||
+                                     output.includes('Not running on GCP') ||
+                                     output.includes('All log messages before absl::InitializeLog');
         
         if (isAccessLog || isFlaskStartupInfo) {
           // This is normal Flask logging, log as info
@@ -600,14 +620,17 @@ export class PythonServerService {
         } else if (isVectorStoreWarning) {
           // Vector store warnings are expected if indexing failed - log as warning
           console.warn('[PythonServerService] FLASK VECTOR WARNING:', output.trim());
+        } else if (isGoogleCloudWarning) {
+          // Google Cloud warnings are not critical - just log as warning
+          console.warn('[PythonServerService] FLASK GCP WARNING:', output.trim());
         } else {
           // This is likely an actual error
           console.error('[PythonServerService] FLASK ERROR:', output.trim());
         }
         
         if (!serverStarted) {
-          // Only treat as startup error if it's not a normal log, SSL warning, or vector store warning
-          if (!isAccessLog && !isFlaskStartupInfo && !isSSLWarning && !isVectorStoreWarning) {
+          // Only treat as startup error if it's not a normal log, SSL warning, vector store warning, or Google Cloud warning
+          if (!isAccessLog && !isFlaskStartupInfo && !isSSLWarning && !isVectorStoreWarning && !isGoogleCloudWarning) {
             cleanup();
             reject(new Error(`Flask server failed to start: ${output}`));
           }
