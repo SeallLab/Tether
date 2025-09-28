@@ -4,12 +4,9 @@ Handles the retrieval-augmented generation with chat history management
 """
 
 import os
-import pickle
 from typing import List, Dict, Any, Optional
-from uuid import uuid4
-
-from langchain_core.documents import Document
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from datetime import datetime, timedelta
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.tools import tool
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
@@ -119,10 +116,6 @@ class RAGService:
         """Analyze activity logs to provide insights for the LLM"""
         if not activity_logs:
             return ""
-        
-        # Group activities by day
-        from datetime import datetime, timedelta
-        import time
         
         # Convert timestamps and group by day
         activities_by_day = {}

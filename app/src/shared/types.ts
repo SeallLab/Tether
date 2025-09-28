@@ -86,7 +86,7 @@ export interface MonitoringConfig {
   idle_enabled: boolean;
   screen_enabled: boolean;
   window_enabled: boolean;
-  idle_threshold: number; // in seconds
+  idle_threshold: number;
   log_batch_size: number;
   storage_path: string;
 }

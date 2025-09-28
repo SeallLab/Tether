@@ -1,34 +1,24 @@
 import { Notification, NotificationConstructorOptions, app } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import { LLMResponse } from '../../shared/types.js';
-import { NotificationTracker, NotificationRecord } from './NotificationTracker.js';
+import { NotificationTracker } from './NotificationTracker.js';
+import { injectable } from 'tsyringe';
+import { Logger } from '../utils/Logger.js';
 
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-interface NotificationOptions {
-  title: string;
-  body: string;
-  icon?: string;
-  silent?: boolean;
-  urgency?: 'normal' | 'critical' | 'low';
-}
-
+@injectable()
 export class NotificationService {
   private isSupported: boolean;
   private tracker: NotificationTracker;
+  private logger: Logger;
 
   constructor() {
+    this.logger = new Logger({ name: 'NotificationService' });
     this.isSupported = Notification.isSupported();
     this.tracker = new NotificationTracker();
     
     if (!this.isSupported) {
-      console.warn('[NotificationService] System notifications not supported on this platform');
+      this.logger.warn('System notifications not supported on this platform');
     } else {
-      console.log('[NotificationService] System notifications supported');
+      this.logger.info('System notifications supported');
     }
   }
 
@@ -37,7 +27,7 @@ export class NotificationService {
    */
   public async sendFocusNotification(llmResponse: LLMResponse): Promise<void> {
     if (!this.isSupported) {
-      console.warn('[NotificationService] Cannot send notification - not supported');
+      this.logger.warn('Cannot send notification - not supported');
       return;
     }
 
@@ -63,10 +53,10 @@ export class NotificationService {
       );
 
       await this.sendNotification(options, notificationId);
-      console.log('[NotificationService] Focus notification sent successfully');
+      this.logger.info('Focus notification sent successfully');
 
     } catch (error) {
-      console.error('[NotificationService] Failed to send focus notification:', error);
+      this.logger.error('Failed to send focus notification:', error);
     }
   }
 
@@ -84,12 +74,12 @@ export class NotificationService {
         });
 
         notification.on('show', () => {
-          console.log('[NotificationService] Notification shown');
+          this.logger.info('Notification shown');
           resolve();
         });
 
         notification.on('click', () => {
-          console.log('[NotificationService] Notification clicked');
+          this.logger.info('Notification clicked');
           if (notificationId) {
             this.tracker.recordInteraction(notificationId, { clicked: true });
           }
@@ -97,14 +87,14 @@ export class NotificationService {
         });
 
         notification.on('close', () => {
-          console.log('[NotificationService] Notification closed');
+          this.logger.info('Notification closed');
           if (notificationId) {
             this.tracker.recordInteraction(notificationId, { dismissed: true });
           }
         });
 
         notification.on('failed', (error) => {
-          console.error('[NotificationService] Notification failed:', error);
+          this.logger.error('Notification failed:', error);
           reject(error);
         });
 
@@ -112,7 +102,7 @@ export class NotificationService {
         notification.show();
 
       } catch (error) {
-        console.error('[NotificationService] Error creating notification:', error);
+        this.logger.error('Error creating notification:', error);
         reject(error);
       }
     });
@@ -127,7 +117,7 @@ export class NotificationService {
     recentActivity: string
   ): Promise<void> {
     if (!this.isSupported) {
-      console.warn('[NotificationService] Cannot send notification - not supported');
+      this.logger.warn('Cannot send notification - not supported');
       return;
     }
 
@@ -155,10 +145,10 @@ export class NotificationService {
       );
 
       await this.sendNotification(options, notificationId);
-      console.log('[NotificationService] Good job notification sent successfully');
+      this.logger.info('Good job notification sent successfully');
 
     } catch (error) {
-      console.error('[NotificationService] Failed to send good job notification:', error);
+      this.logger.error('Failed to send good job notification:', error);
     }
   }
 
@@ -167,24 +157,6 @@ export class NotificationService {
    */
   public isNotificationSupported(): boolean {
     return this.isSupported;
-  }
-
-  /**
-   * Request notification permissions (mainly for macOS)
-   */
-  public async requestPermissions(): Promise<boolean> {
-    if (process.platform === 'darwin') {
-      try {
-        // On macOS, we need to request notification permissions
-        console.log('[NotificationService] Requesting notification permissions on macOS');
-        return true; // Electron handles this automatically
-      } catch (error) {
-        console.error('[NotificationService] Failed to request permissions:', error);
-        return false;
-      }
-    }
-    
-    return true; // Other platforms don't require explicit permission requests
   }
 
   /**

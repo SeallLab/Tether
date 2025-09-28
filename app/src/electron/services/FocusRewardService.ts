@@ -1,63 +1,55 @@
 import { BrowserWindow, Notification } from 'electron';
 import { WorkPatternAnalyzer } from './WorkPatternAnalyzer.js';
 import { GamificationService } from './GamificationService.js';
-import { NotificationService } from './NotificationService.js';
 import { ActivityLogger } from './ActivityLogger.js';
-import type { ActivityLog, Badge, Quest } from '../../shared/types.js';
+import type { Badge, Quest } from '../../shared/types.js';
 import { IPC_CHANNELS } from '../../shared/constants.js';
+import { Logger } from '../utils/Logger.js';
+import { injectable } from 'tsyringe';
 
+@injectable()
 export class FocusRewardService {
   private workPatternAnalyzer: WorkPatternAnalyzer;
   private gamificationService: GamificationService;
-  private notificationService: NotificationService;
   private activityLogger: ActivityLogger;
   private lastRewardCheck: number = 0;
-  private currentSessionStart: number = 0;
-  private isSessionActive: boolean = false;
-
+  private logger: Logger;
   constructor(
     gamificationService: GamificationService,
-    notificationService: NotificationService,
     activityLogger: ActivityLogger
   ) {
     this.workPatternAnalyzer = new WorkPatternAnalyzer();
     this.gamificationService = gamificationService;
-    this.notificationService = notificationService;
     this.activityLogger = activityLogger;
+    this.logger = new Logger({ name: 'FocusRewardService' });
   }
 
   /**
    * Start monitoring for focus rewards
    */
   async startMonitoring(): Promise<void> {
-    console.log('[FocusRewardService] Starting focus reward monitoring');
+    this.logger.info('Starting focus reward monitoring');
     this.lastRewardCheck = Date.now();
     
     // Check for rewards every 10 minutes
     setInterval(() => {
       this.checkAndAwardFocusRewards();
-    }, 10 * 60 * 1000);
+    }, 1 * 60 * 100);
     
-    // Also check when activity patterns change
-    this.schedulePatternCheck();
   }
 
   /**
-   * Manually trigger a focus reward check
+   * trigger a focus reward check
    */
   async checkAndAwardFocusRewards(): Promise<void> {
     try {
       const now = Date.now();
       const timeSinceLastCheck = now - this.lastRewardCheck;
       
-      // Get recent activity logs (last 2 hours)
       const recentLogs = await this.activityLogger.getRecentLogs(120);
-      
-      // Analyze work patterns
+      const longerLogs = await this.activityLogger.getRecentLogs(1200);
       const workPattern = this.workPatternAnalyzer.analyzeWorkPattern(recentLogs, 60);
-      
-      // Check for consistent work
-      const consistentWork = this.workPatternAnalyzer.hasBeenConsistentlyWorking(recentLogs, 60, 5);
+      const consistentWork = this.workPatternAnalyzer.hasBeenConsistentlyWorking(longerLogs, 60, 5);
       
       console.log('[FocusRewardService] Focus check:', {
         timeSinceLastCheck: Math.round(timeSinceLastCheck / 60000),
@@ -77,7 +69,7 @@ export class FocusRewardService {
       this.lastRewardCheck = now;
       
     } catch (error) {
-      console.error('[FocusRewardService] Error checking focus rewards:', error);
+      this.logger.error('Error checking focus rewards:', error);
     }
   }
 
@@ -90,7 +82,7 @@ export class FocusRewardService {
     
     if (pointsToAward === 0) return;
 
-    console.log(`[FocusRewardService] Awarding ${pointsToAward} points for ${durationMinutes}min focus session`);
+    this.logger.info(`Awarding ${pointsToAward} points for ${durationMinutes}min focus session`);
 
     const event = await this.gamificationService.awardPoints(
       pointsToAward,
@@ -192,7 +184,7 @@ export class FocusRewardService {
       });
 
       notification.on('click', () => {
-        console.log('[FocusRewardService] Points notification clicked - opening rewards tab');
+        this.logger.info('Points notification clicked - opening rewards tab');
         this.openRewardsTab();
       });
 
@@ -210,7 +202,7 @@ export class FocusRewardService {
         });
       });
 
-      console.log(`[FocusRewardService] Points notification sent: ${points} points`);
+      this.logger.info(`Points notification sent: ${points} points`);
     } catch (error) {
       console.error('[FocusRewardService] Failed to send points notification:', error);
     }
@@ -243,7 +235,7 @@ export class FocusRewardService {
       });
 
     } catch (error) {
-      console.error('[FocusRewardService] Failed to send quest notification:', error);
+      this.logger.error('Failed to send quest notification:', error);
     }
   }
 
@@ -274,7 +266,7 @@ export class FocusRewardService {
       });
 
     } catch (error) {
-      console.error('[FocusRewardService] Failed to send badge notification:', error);
+      this.logger.error('Failed to send badge notification:', error);
     }
   }
 
@@ -292,41 +284,6 @@ export class FocusRewardService {
       window.show();
       window.focus();
     });
-  }
-
-  /**
-   * Schedule periodic pattern checks
-   */
-  private schedulePatternCheck(): void {
-    // Check every 30 minutes for ongoing sessions
-    setInterval(() => {
-      this.checkCurrentSession();
-    }, 30 * 60 * 1000);
-  }
-
-  /**
-   * Check current session for real-time updates
-   */
-  private async checkCurrentSession(): Promise<void> {
-    try {
-      const recentLogs = await this.activityLogger.getRecentLogs(60);
-      const consistentWork = this.workPatternAnalyzer.hasBeenConsistentlyWorking(recentLogs, 30, 5);
-      
-      if (consistentWork.isConsistent && consistentWork.workDuration >= 30) {
-        if (!this.isSessionActive) {
-          this.isSessionActive = true;
-          this.currentSessionStart = Date.now() - (consistentWork.workDuration * 60 * 1000);
-          console.log('[FocusRewardService] Focus session detected:', consistentWork.workDuration, 'minutes');
-        }
-      } else {
-        if (this.isSessionActive) {
-          this.isSessionActive = false;
-          console.log('[FocusRewardService] Focus session ended');
-        }
-      }
-    } catch (error) {
-      console.error('[FocusRewardService] Error checking current session:', error);
-    }
   }
 
   /**
@@ -357,16 +314,5 @@ export class FocusRewardService {
       achievement.trigger === achievementType &&
       new Date(achievement.earnedAt) >= weekStart
     );
-  }
-
-  /**
-   * Get current session info
-   */
-  getCurrentSessionInfo(): { isActive: boolean; duration: number; startTime: number } {
-    return {
-      isActive: this.isSessionActive,
-      duration: this.isSessionActive ? Math.floor((Date.now() - this.currentSessionStart) / 60000) : 0,
-      startTime: this.currentSessionStart
-    };
   }
 } 

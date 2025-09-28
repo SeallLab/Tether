@@ -11,6 +11,8 @@ import type {
   PointEarningEvent,
   QuestReward
 } from '../../shared/types.js';
+import { Logger } from '../utils/Logger.js';
+import { injectable } from 'tsyringe';
 
 const DOCK_THEMES: DockTheme[] = [
   {
@@ -211,12 +213,14 @@ const DEFAULT_GAMIFICATION_DATA: GamificationData = {
   achievements: []
 };
 
+@injectable()
 export class GamificationService {
   private data: GamificationData;
   private dataPath: string;
   private isLoaded: boolean = false;
-
+  private logger: Logger;
   constructor() {
+    this.logger = new Logger({ name: 'GamificationService' });
     const userDataPath = app.getPath('userData');
     this.dataPath = path.join(userDataPath, 'gamification.json');
     this.data = { ...DEFAULT_GAMIFICATION_DATA };
@@ -228,13 +232,12 @@ export class GamificationService {
   async load(): Promise<void> {
     try {
       await fs.mkdir(path.dirname(this.dataPath), { recursive: true });
-
       try {
         await fs.access(this.dataPath);
       } catch {
         await this.save();
         this.isLoaded = true;
-        console.log('[GamificationService] Created new gamification file with defaults');
+        this.logger.info('Created new gamification file with defaults');
         return;
       }
 
@@ -245,9 +248,9 @@ export class GamificationService {
       await this.validateAndMigrate();
       
       this.isLoaded = true;
-      console.log('[GamificationService] Gamification data loaded successfully');
+      this.logger.info('Gamification data loaded successfully');
     } catch (error) {
-      console.error('[GamificationService] Error loading data:', error);
+      this.logger.error('Error loading data:', error);
       this.data = { ...DEFAULT_GAMIFICATION_DATA };
       this.isLoaded = true;
     }
@@ -264,9 +267,9 @@ export class GamificationService {
         JSON.stringify(this.data, null, 2),
         'utf8'
       );
-      console.log('[GamificationService] Data saved successfully');
+      this.logger.info('Data saved successfully');
     } catch (error) {
-      console.error('[GamificationService] Error saving data:', error);
+      this.logger.error('Error saving data:', error);
       throw error;
     }
   }
@@ -332,7 +335,7 @@ export class GamificationService {
     }
 
     await this.save();
-    console.log(`[GamificationService] Awarded ${points} points for ${description}`);
+    this.logger.info(`Awarded ${points} points for ${description}`);
     
     return event;
   }
@@ -394,7 +397,6 @@ export class GamificationService {
 
       switch (quest.id) {
         case 'daily_focus':
-          // Reset daily quest if it's a new day
           const today = new Date().toDateString();
           const questDate = quest.expiresAt ? new Date(quest.expiresAt - 24 * 60 * 60 * 1000).toDateString() : today;
           
@@ -564,7 +566,7 @@ export class GamificationService {
     );
 
     await this.save();
-    console.log('[GamificationService] First Time Explorer badge earned!');
+    this.logger.info('First Time Explorer badge earned!');
     
     return badge;
   }

@@ -1,7 +1,9 @@
 import { LLMProvider, LLMResponse, ActivityLog } from '../../shared/types.js';
 import { ActivityLogger } from './ActivityLogger.js';
 import { createProviderWithFallback, ProviderType } from './providers/index.js';
+import { injectable } from 'tsyringe';
 
+@injectable()
 export class LLMService {
   private provider: LLMProvider;
   private activityLogger: ActivityLogger;
@@ -74,7 +76,7 @@ RESPOND WITH VALID JSON:
 }
 
 Consider:
-- Short breaks (under 5 minutes) are normal
+- If this is LLM call is being made, then it the user has passed the idle threshold they have set for themselves (so even if its short break, they should be notified)
 - Longer idle periods during work hours may indicate distraction
 - Tailor the message to what they were working on
 - Be encouraging, not judgmental
@@ -84,7 +86,7 @@ Consider:
   private extractRecentWindows(logs: ActivityLog[]): any[] {
     return logs
       .filter(log => log.type === 'window_change')
-      .slice(-5) // Last 5 window changes
+      .slice(-25) // Last 25 window changes
       .map(log => log.data);
   }
 

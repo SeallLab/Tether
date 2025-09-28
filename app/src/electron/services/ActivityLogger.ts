@@ -2,23 +2,24 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { ActivityLog, ActivityType, ActivityData } from '../../shared/types.js';
+import { inject, injectable } from 'tsyringe';
+import { SettingsService } from './SettingsService.js';
 
+@injectable()
 export class ActivityLogger {
   private logs: ActivityLog[] = [];
   private sessionId: string;
-  private storagePath: string;
-  private batchSize: number;
+  private settingsService: SettingsService;
 
-  constructor(storagePath: string, batchSize: number = 100) {
+  constructor(@inject(SettingsService) settingsService: SettingsService,) {
+    this.settingsService = settingsService;
     this.sessionId = uuidv4();
-    this.storagePath = storagePath;
-    this.batchSize = batchSize;
     this.ensureStorageDirectory();
   }
 
   private async ensureStorageDirectory(): Promise<void> {
     try {
-      await fs.mkdir(this.storagePath, { recursive: true });
+      await fs.mkdir(this.settingsService.getMonitoringConfig().storage_path, { recursive: true });
     } catch (error) {
       console.error('Failed to create storage directory:', error);
     }
@@ -34,10 +35,9 @@ export class ActivityLogger {
     };
 
     this.logs.push(logEntry);
-    console.log(`[ActivityLogger] ${type}:`, data);
 
     // Auto-flush when batch size is reached
-    if (this.logs.length >= this.batchSize) {
+    if (this.logs.length >= this.settingsService.getMonitoringConfig().log_batch_size) {
       this.flush();
     }
   }
@@ -47,7 +47,7 @@ export class ActivityLogger {
 
     try {
       const filename = `activity_${new Date().toISOString().split('T')[0]}.jsonl`;
-      const filepath = path.join(this.storagePath, filename);
+      const filepath = path.join(this.settingsService.getMonitoringConfig().storage_path, filename);
       
       // Convert logs to JSONL format (one JSON object per line)
       const jsonlData = this.logs.map(log => JSON.stringify(log)).join('\n') + '\n';
@@ -64,11 +64,11 @@ export class ActivityLogger {
     const logs: ActivityLog[] = [];
     
     try {
-      const files = await fs.readdir(this.storagePath);
+      const files = await fs.readdir(this.settingsService.getMonitoringConfig().storage_path);
       const logFiles = files.filter(file => file.startsWith('activity_') && file.endsWith('.jsonl'));
 
       for (const file of logFiles) {
-        const filepath = path.join(this.storagePath, file);
+        const filepath = path.join(this.settingsService.getMonitoringConfig().storage_path, file);
         const content = await fs.readFile(filepath, 'utf8');
         const lines = content.trim().split('\n');
 

@@ -2,6 +2,8 @@ import { app } from 'electron';
 import { promises as fs } from 'fs';
 import path from 'path';
 import type { MonitoringConfig } from '../../shared/types.js';
+import { injectable } from 'tsyringe';
+import { Logger } from '../utils/Logger.js';
 
 export interface AppSettings {
   monitoring: MonitoringConfig;
@@ -26,7 +28,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     screen_enabled: false,
     window_enabled: true,
     idle_threshold: 1200, // 20 minutes
-    log_batch_size: 100,
+    log_batch_size: 10,
     storage_path: '', // Will be set dynamically
   },
   llm: {
@@ -42,21 +44,20 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
 };
 
+@injectable()
 export class SettingsService {
   private settings: AppSettings;
   private settingsPath: string;
   private isLoaded: boolean = false;
+  private logger: Logger;
 
   constructor() {
-    // Use Electron's userData directory for settings
     const userDataPath = app.getPath('userData');
     this.settingsPath = path.join(userDataPath, 'settings.json');
-    
-    // Initialize with defaults
     this.settings = { ...DEFAULT_SETTINGS };
-    
-    // Set dynamic default paths
     this.settings.monitoring.storage_path = path.join(userDataPath, 'activity_logs');
+    this.logger = new Logger({ name: 'SettingsService' });
+    this.load();
   }
 
   /**
@@ -74,7 +75,7 @@ export class SettingsService {
         // File doesn't exist, create it with defaults
         await this.save();
         this.isLoaded = true;
-        console.log('[SettingsService] Created new settings file with defaults');
+        this.logger.info('Created new settings file with defaults');
         return;
       }
 
@@ -89,9 +90,9 @@ export class SettingsService {
       await this.validateAndMigrate();
       
       this.isLoaded = true;
-      console.log('[SettingsService] Settings loaded successfully');
+      this.logger.info('Settings loaded successfully');
     } catch (error) {
-      console.error('[SettingsService] Error loading settings:', error);
+      this.logger.error('Error loading settings:', error);
       // Fall back to defaults if loading fails
       this.settings = { ...DEFAULT_SETTINGS };
       this.settings.monitoring.storage_path = path.join(app.getPath('userData'), 'activity_logs');
@@ -114,9 +115,9 @@ export class SettingsService {
         'utf8'
       );
       
-      console.log('[SettingsService] Settings saved successfully');
+      this.logger.info('Settings saved successfully');
     } catch (error) {
-      console.error('[SettingsService] Error saving settings:', error);
+      this.logger.error('Error saving settings:', error);
       throw error;
     }
   }
@@ -198,7 +199,7 @@ export class SettingsService {
     this.settings = { ...DEFAULT_SETTINGS };
     this.settings.monitoring.storage_path = path.join(app.getPath('userData'), 'activity_logs');
     await this.save();
-    console.log('[SettingsService] Settings reset to defaults');
+    this.logger.info('Settings reset to defaults');
   }
 
   /**
@@ -265,7 +266,7 @@ export class SettingsService {
       try {
         await fs.mkdir(this.settings.monitoring.storage_path, { recursive: true });
       } catch (error) {
-        console.warn('[SettingsService] Could not create storage path, using default');
+        this.logger.warn('Could not create storage path, using default');
         this.settings.monitoring.storage_path = path.join(app.getPath('userData'), 'activity_logs');
         needsSave = true;
       }
@@ -273,7 +274,7 @@ export class SettingsService {
 
     if (needsSave) {
       await this.save();
-      console.log('[SettingsService] Settings validated and migrated');
+      this.logger.info('Settings validated and migrated');
     }
   }
 } 

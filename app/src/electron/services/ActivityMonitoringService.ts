@@ -1,44 +1,56 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import os from 'os';
 import { ActivityLogger } from './ActivityLogger.js';
 import { BaseMonitor } from '../monitors/BaseMonitor.js';
 import { IdleMonitor } from '../monitors/IdleMonitor.js';
 import { WindowMonitor } from '../monitors/WindowMonitor.js';
 import { LLMService, createLLMService } from './LLMService.js';
 import { NotificationService } from './NotificationService.js';
-import { ChatService } from './ChatService.js';
 import { SettingsService } from './SettingsService.js';
 import { WorkPatternAnalyzer } from './WorkPatternAnalyzer.js';
 import { GamificationService } from './GamificationService.js';
 import { FocusRewardService } from './FocusRewardService.js';
 import { MonitoringConfig, ActivityType, FocusNotificationData } from '../../shared/types.js';
 import { IPC_CHANNELS } from '../../shared/constants.js';
+import { injectable, inject } from 'tsyringe';
+import { Logger } from '../utils/Logger.js';
 
+@injectable()
 export class ActivityMonitoringService {
-  private logger: ActivityLogger;
+  private activityLogger: ActivityLogger;
   private monitors: Map<string, BaseMonitor> = new Map();
   private config: MonitoringConfig;
   private isStarted: boolean = false;
   private llmService: LLMService | null = null;
   private notificationService: NotificationService;
-  private chatService: ChatService;
   public settingsService: SettingsService;
-  private workPatternAnalyzer: WorkPatternAnalyzer;
-  private gamificationService: GamificationService;
-  private focusRewardService: FocusRewardService;
   private lastIdleNotification: number = 0;
   private lastGoodJobNotification: number = 0;
   private workCheckInterval: NodeJS.Timeout | null = null;
+  private workPatternAnalyzer: WorkPatternAnalyzer;
+  private focusRewardService: FocusRewardService;
+  private gamificationService: GamificationService;
+  private logger: Logger;
 
-  constructor(settingsService: SettingsService, config?: Partial<MonitoringConfig>) {
+  constructor(
+    @inject(SettingsService) settingsService: SettingsService,
+    @inject(NotificationService) notificationService: NotificationService,
+    @inject(WorkPatternAnalyzer) workPatternAnalyzer: WorkPatternAnalyzer,
+    @inject(FocusRewardService) focusRewardService: FocusRewardService,
+    @inject(GamificationService) gamificationService: GamificationService,
+    @inject(ActivityLogger) activityLogger: ActivityLogger
+  ) {
+    this.logger = new Logger({ name: 'ActivityMonitoringService' });
     this.settingsService = settingsService;
+    this.notificationService = notificationService;
+    this.workPatternAnalyzer = workPatternAnalyzer;
+    this.focusRewardService = focusRewardService;
+    this.gamificationService = gamificationService;
+    this.activityLogger = activityLogger;
     
-    // Load configuration from settings service or use provided config
     if (settingsService.isSettingsLoaded()) {
       this.config = settingsService.getMonitoringConfig();
     } else {
-      // Fallback to provided config or defaults - use consistent path with SettingsService
       this.config = {
         idle_enabled: true,
         screen_enabled: false,
@@ -46,34 +58,8 @@ export class ActivityMonitoringService {
         idle_threshold: 300,
         log_batch_size: 100,
         storage_path: path.join(app.getPath('userData'), 'activity_logs'),
-        ...config
       };
     }
-
-    // Initialize logger
-    this.logger = new ActivityLogger(
-      this.config.storage_path,
-      this.config.log_batch_size
-    );
-
-    // Initialize notification service
-    this.notificationService = new NotificationService();
-
-    // Initialize chat service (PythonServerService will be injected later)
-    this.chatService = new ChatService(this.logger);
-
-    // Initialize work pattern analyzer
-    this.workPatternAnalyzer = new WorkPatternAnalyzer();
-
-    // Initialize gamification service
-    this.gamificationService = new GamificationService();
-
-    // Initialize focus reward service
-    this.focusRewardService = new FocusRewardService(
-      this.gamificationService,
-      this.notificationService,
-      this.logger
-    );
 
     this.initializeMonitors();
     
@@ -84,7 +70,7 @@ export class ActivityMonitoringService {
   private initializeMonitors(): void {
     // Initialize idle monitor
     if (this.config.idle_enabled) {
-      const idleMonitor = new IdleMonitor(this.logger, this.config.idle_threshold);
+      const idleMonitor = new IdleMonitor(this.activityLogger, this.config.idle_threshold);
       
       // Subscribe to idle events for LLM analysis
       idleMonitor.onIdleStateChange = (isIdle: boolean, duration: number) => {
@@ -96,7 +82,7 @@ export class ActivityMonitoringService {
 
     // Initialize window monitor
     if (this.config.window_enabled) {
-      const windowMonitor = new WindowMonitor(this.logger);
+      const windowMonitor = new WindowMonitor(this.activityLogger);
       this.monitors.set('window', windowMonitor);
     }
 
@@ -111,11 +97,19 @@ export class ActivityMonitoringService {
 
     
     try {
+      // Reload config from settings in case it was loaded after constructor
+      if (this.settingsService.isSettingsLoaded()) {
+        const newConfig = this.settingsService.getMonitoringConfig();
+        this.logger.info('Reloading config from settings:', { 
+          oldThreshold: this.config.idle_threshold,
+          newThreshold: newConfig.idle_threshold 
+        });
+        this.config = newConfig;
+        this.initializeMonitors();
+      }
+
       // Request necessary permissions
       await this.requestPermissions();
-
-      // Request notification permissions
-      await this.notificationService.requestPermissions();
 
       // Start all enabled monitors
       const startPromises = Array.from(this.monitors.values()).map(monitor => 
@@ -130,12 +124,11 @@ export class ActivityMonitoringService {
 
       // Load gamification data
       await this.gamificationService.load();
-
-      // Start focus reward monitoring
       await this.focusRewardService.startMonitoring();
-
-      // Start work pattern monitoring (check every 5 minutes)
-      this.startWorkPatternMonitoring();
+      this.workCheckInterval = setInterval(async () => {
+        this.logger.info('Checking for consistent work');
+        await this.checkForConsistentWork();
+      }, 30 * 1000);
 
       // Set up cleanup on app quit
       app.on('before-quit', async () => {
@@ -160,15 +153,9 @@ export class ActivityMonitoringService {
       );
 
       await Promise.allSettled(stopPromises);
-
-      // Stop work pattern monitoring
       this.stopWorkPatternMonitoring();
-
-      // Cleanup logger
-      await this.logger.cleanup();
-
+      await this.activityLogger.cleanup();
       this.isStarted = false;
-
     } catch (error) {
       console.error('[ActivityMonitoringService] Error during shutdown:', error);
     }
@@ -182,14 +169,14 @@ export class ActivityMonitoringService {
   } {
     return {
       started: this.isStarted,
-      sessionId: this.logger.getSessionId(),
+      sessionId: this.activityLogger.getSessionId(),
       monitors: Array.from(this.monitors.values()).map(monitor => monitor.getStatus()),
       config: this.config
     };
   }
 
   public async getRecentActivity(minutes: number = 60): Promise<any[]> {
-    return await this.logger.getRecentLogs(minutes);
+    return await this.activityLogger.getRecentLogs(minutes);
   }
 
   public async updateConfig(newConfig: Partial<MonitoringConfig>): Promise<void> {
@@ -220,7 +207,7 @@ export class ActivityMonitoringService {
         if (!idleMonitor) {
           // Create new idle monitor
           const newIdleMonitor = new IdleMonitor(
-            this.logger, 
+            this.activityLogger, 
             newConfig.idle_threshold
           );
           newIdleMonitor.onIdleStateChange = (isIdle: boolean, duration: number) => {
@@ -255,7 +242,7 @@ export class ActivityMonitoringService {
       if (newConfig.window_enabled && !oldConfig.window_enabled) {
         // Window monitoring was enabled
         if (!windowMonitor) {
-          const newWindowMonitor = new WindowMonitor(this.logger);
+          const newWindowMonitor = new WindowMonitor(this.activityLogger);
           this.monitors.set('window', newWindowMonitor);
           
           // Start it if the service is running
@@ -287,10 +274,6 @@ export class ActivityMonitoringService {
     }
   }
 
-  public getLogger(): ActivityLogger {
-    return this.logger;
-  }
-
   public getMonitor(name: string): BaseMonitor | undefined {
     return this.monitors.get(name);
   }
@@ -316,7 +299,7 @@ export class ActivityMonitoringService {
 
     try {
       // Get today's logs for context
-      const todayLogs = await this.logger.getRecentLogs(12 * 60); // Last 12 hours
+      const todayLogs = await this.activityLogger.getRecentLogs(12 * 60); // Last 12 hours
       
       // Analyze focus loss with LLM
       const llmResponse = await this.llmService.analyzeFocusLoss(duration, todayLogs);
@@ -339,7 +322,7 @@ export class ActivityMonitoringService {
         };
 
         // Log the focus notification
-        this.logger.log(ActivityType.FOCUS_NOTIFICATION, focusNotification);
+        this.activityLogger.log(ActivityType.FOCUS_NOTIFICATION, focusNotification);
         
         // Send to UI via IPC
         await this.sendFocusNotificationToUI(llmResponse);
@@ -397,16 +380,13 @@ export class ActivityMonitoringService {
     try {
       if (apiKey) {
         // Use Gemini with API key
-        this.llmService = createLLMService(this.logger, 'gemini', { apiKey });
-      } else {
-        // Use mock provider as fallback
-        this.llmService = createLLMService(this.logger, 'mock');
+        this.llmService = createLLMService(this.activityLogger, 'gemini', { apiKey });
       }
     } catch (error) {
       console.error('[ActivityMonitoringService] Failed to initialize LLM service:', error);
       // Fallback to mock provider
       try {
-        this.llmService = createLLMService(this.logger, 'mock');
+        this.llmService = createLLMService(this.activityLogger, 'mock');
       } catch (fallbackError) {
         console.error('[ActivityMonitoringService] Failed to initialize fallback LLM service:', fallbackError);
       }
@@ -420,22 +400,6 @@ export class ActivityMonitoringService {
     };
   }
 
-  public getChatService(): ChatService {
-    return this.chatService;
-  }
-
-  public getNotificationService(): NotificationService {
-    return this.notificationService;
-  }
-
-  public getGamificationService(): GamificationService {
-    return this.gamificationService;
-  }
-
-  public getFocusRewardService(): FocusRewardService {
-    return this.focusRewardService;
-  }
-
   private initializeLLMFromSettings(): void {
     if (this.settingsService.isSettingsLoaded()) {
       const llmSettings = this.settingsService.getLLMSettings();
@@ -445,14 +409,6 @@ export class ActivityMonitoringService {
         this.initializeLLM();
       }
     }
-  }
-
-  private startWorkPatternMonitoring(): void {
-    // Check for consistent work every 5 minutes
-    this.workCheckInterval = setInterval(async () => {
-      await this.checkForConsistentWork();
-    }, 5 * 60 * 1000);
-
   }
 
   private stopWorkPatternMonitoring(): void {
@@ -468,7 +424,7 @@ export class ActivityMonitoringService {
       const workThresholdMinutes = Math.floor(this.config.idle_threshold / 60);
       
       // Get recent logs for analysis
-      const recentLogs = await this.logger.getRecentLogs(workThresholdMinutes + 10);
+      const recentLogs = await this.activityLogger.getRecentLogs(workThresholdMinutes + 10);
       
       // Check if user has been consistently working
       const workAnalysis = this.workPatternAnalyzer.hasBeenConsistentlyWorking(

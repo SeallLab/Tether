@@ -1,4 +1,5 @@
 import { ActivityLog, ActivityType, WindowData, IdleData } from '../../shared/types.js';
+import { injectable } from 'tsyringe';
 
 export interface WorkSession {
   startTime: number;
@@ -19,6 +20,7 @@ export interface WorkPattern {
   longestFocusStreak: number; // in minutes
 }
 
+@injectable()
 export class WorkPatternAnalyzer {
   
   /**
@@ -101,13 +103,10 @@ export class WorkPatternAnalyzer {
 
     // Analyze window activity to determine primary activity
     const windowLogs = recentLogs.filter(log => log.type === ActivityType.WINDOW_CHANGE);
-    const primaryActivity = this.getPrimaryActivity(windowLogs);
-    
-    // Calculate actual work duration (excluding short idle periods)
-    const workDuration = this.calculateActiveWorkDuration(recentLogs, maxIdleGapMinutes);
-    
-    // Consider it consistent if work duration is at least 80% of the threshold
-    const isConsistent = workDuration >= (thresholdMinutes * 0.8);
+    const primaryActivity = this.getPrimaryActivity(windowLogs);    // Calculate actual work duration (excluding short idle periods)
+    const workDuration = this.calculateActiveWorkDuration(logs, maxIdleGapMinutes);    
+    // Consider it consistent if work duration is at least 50% of the threshold
+    const isConsistent = workDuration >= (thresholdMinutes * 0.5);
     
     return {
       isConsistent,
@@ -264,6 +263,7 @@ export class WorkPatternAnalyzer {
     
     const startTime = sortedLogs[0].timestamp;
     const endTime = sortedLogs[sortedLogs.length - 1].timestamp;
+    console.log('[WorkPatternAnalyzer] Start time:', startTime, 'End time:', endTime);
     const totalDuration = (endTime - startTime) / (1000 * 60);
     
     // Subtract idle periods longer than maxIdleGapMinutes

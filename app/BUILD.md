@@ -15,17 +15,6 @@ The Tether application now includes an embedded Python Flask server that provide
 3. **pip** - Python package manager
 4. **venv** - Python virtual environment module
 
-### Check Your Environment
-
-Before building, verify your environment is ready:
-
-```bash
-# Check Python environment
-npm run check-python
-
-# Check Node.js version
-node --version
-```
 
 ## Build Process
 
@@ -197,7 +186,7 @@ Change the Flask server port:
 
 ```typescript
 const pythonService = new PythonServerService({
-  serverPort: 5002,
+  serverPort: 5001,
   serverHost: '127.0.0.1'
 });
 ```
@@ -214,7 +203,6 @@ This is more complex but eliminates the Python installation requirement on targe
 
 ## Build Scripts Reference
 
-- `npm run check-python` - Verify Python environment
 - `npm run prepare-build` - Clean and prepare for building
 - `npm run build` - Create production build
 - `npm run dist:mac` - Package for macOS

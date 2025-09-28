@@ -1,0 +1,1011 @@
+[AppManager] LLM service initialized
+[AppManager] Global shortcut registered: CommandOrControl+Shift+D
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+9:13:20 PM [vite] (client) page reload src/electron/services/FocusRewardService.ts
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 2s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+9:13:50 PM [vite] (client) page reload src/electron/services/FocusRewardService.ts (x2)
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 4s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'GamificationService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'global.d.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 2s, threshold: 1200s
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 8s, threshold: 1200s
+[IdleMonitor] System idle time: 13s, threshold: 1200s
+[IdleMonitor] System idle time: 18s, threshold: 1200s
+[IdleMonitor] System idle time: 23s, threshold: 1200s
+[IdleMonitor] System idle time: 28s, threshold: 1200s
+[IdleMonitor] System idle time: 33s, threshold: 1200s
+[IdleMonitor] System idle time: 38s, threshold: 1200s
+[IdleMonitor] System idle time: 43s, threshold: 1200s
+[IdleMonitor] System idle time: 48s, threshold: 1200s
+[IdleMonitor] System idle time: 53s, threshold: 1200s
+[IdleMonitor] System idle time: 58s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Google Chrome',
+  window_title: 'New Tab - Google Chrome',
+  process_name: '613',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Google Chrome',
+  window_title: 'Google Gemini - Google Chrome',
+  process_name: '613',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Google Chrome',
+  window_title: 'No Window',
+  process_name: '613',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Google Chrome',
+  window_title: 'gemin iai studio - Google Search - Google Chrome',
+  process_name: '613',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Google Chrome',
+  window_title: 'Google AI Studio - Google Chrome',
+  process_name: '613',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Google Chrome',
+  window_title: 'Sign in - Google Accounts - Google Chrome',
+  process_name: '613',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Google Chrome',
+  window_title: 'Google AI Studio - Google Chrome',
+  process_name: '613',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 2s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'ActivityMonitoringService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 5s, threshold: 1200s
+[IdleMonitor] System idle time: 10s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 8s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 8s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'ActivityMonitoringService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+9:17:27 PM [vite] (client) page reload src/electron/services/ActivityMonitoringService.ts
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+9:17:29 PM [vite] (client) page reload src/electron/services/NotificationService.ts
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationTracker.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[FocusRewardService] Focus check: {
+  timeSinceLastCheck: 5,
+  totalWorkTime: 20.463266666666666,
+  isConsistent: true,
+  workDuration: 20.463266666666666,
+  recentLogsCount: 149,
+  primaryActivity: 'Google Chrome'
+}
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Recents',
+  process_name: '639',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Applications',
+  process_name: '639',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: 'zsh',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '/Applications/Tether.app',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..her.app/Contents/MacOS',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: 'cursor',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationTracker.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationTracker.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Contents',
+  process_name: '639',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Applications',
+  process_name: '639',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationTracker.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationTracker.ts — Tether',
+  process_name: '34942',
+  window_bounds: undefined
+}
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[Main] Updating child window options: {
+  windowId: '',
+  options: {
+    width: 900,
+    height: 700,
+    title: 'Settings',
+    center: true,
+    frame: true,
+    resizable: true,
+    alwaysOnTop: false
+  }
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Electron',
+  window_title: 'Tether',
+  process_name: '34942',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Electron',
+  window_title: 'Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationTracker.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 4s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 5s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 8s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'debug-tether.bat — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: 'zsh',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[FocusRewardService] Focus check: {
+  timeSinceLastCheck: 5,
+  totalWorkTime: 16.45455,
+  isConsistent: false,
+  workDuration: 16.45455,
+  recentLogsCount: 117,
+  primaryActivity: 'Cursor'
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ry/Application Support',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ication Support/Tether',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ns/Tether.app/Contents',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'stable',
+  window_title: '..ication Support/Tether',
+  process_name: '38962',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Tether',
+  process_name: '639',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'No Window',
+  process_name: '639',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Choose Application',
+  process_name: '639',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'activity_2025-09-20.jsonl — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'debug-tether.bat — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Tether',
+  process_name: '639',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'activity_2025-09-23.jsonl — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'debug-tether.bat — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Tether',
+  process_name: '639',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'No Window',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'gamification.json',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'No Window',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'settings.json',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'No Window',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Finder',
+  window_title: 'Tether',
+  process_name: '639',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'notifications.json',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'No Window',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'gamification.json',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 5s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'No Window',
+  process_name: '46480',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Xcode',
+  window_title: 'No Window',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'useGamification.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'global.d.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'NotificationService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'global.d.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'useGamification.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[Main] Updating child window options: {
+  windowId: '',
+  options: {
+    width: 900,
+    height: 700,
+    title: 'Settings',
+    center: true,
+    frame: true,
+    resizable: true,
+    alwaysOnTop: false
+  }
+}
+[ActivityLogger] window_change: {
+  application_name: 'Electron',
+  window_title: 'Tether',
+  process_name: '34942',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'useGamification.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'global.d.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'gamificationHandlers.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'constants.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'gamificationHandlers.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[FocusRewardService] Focus check: {
+  timeSinceLastCheck: 5,
+  totalWorkTime: 11.409766666666666,
+  isConsistent: false,
+  workDuration: 11.409766666666666,
+  recentLogsCount: 105,
+  primaryActivity: 'Google Chrome'
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'GamificationService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'ActivityMonitoringService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'GamificationService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 4s, threshold: 1200s
+[IdleMonitor] System idle time: 2s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Electron',
+  window_title: 'Tether',
+  process_name: '34942',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'activity_2025-09-23.jsonl — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 4s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+9:32:08 PM [vite] (client) page reload src/electron/services/FocusRewardService.ts
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+9:32:17 PM [vite] (client) page reload src/electron/handlers/gamificationHandlers.ts
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+9:32:30 PM [vite] (client) page reload src/electron/handlers/gamificationHandlers.ts (x2)
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'gamificationHandlers.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[Main] Updating child window options: {
+  windowId: '',
+  options: {
+    width: 900,
+    height: 700,
+    title: 'Settings',
+    center: true,
+    frame: true,
+    resizable: true,
+    alwaysOnTop: false
+  }
+}
+[ActivityLogger] window_change: {
+  application_name: 'Electron',
+  window_title: 'Tether',
+  process_name: '34942',
+  window_bounds: undefined
+}
+9:32:40 PM [vite] (client) page reload src/electron/handlers/gamificationHandlers.ts (x3)
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[WindowManager] Window open request: {
+  url: 'about:blank',
+  features: 'width=900,height=700,title=Settings,center=true,frame=true,resizable=true,alwaysOnTop=false'
+}
+[WindowManager] New window created: about:blank
+[Main] Updating child window options: {
+  windowId: '',
+  options: {
+    width: 900,
+    height: 700,
+    title: 'Settings',
+    center: true,
+    frame: true,
+    resizable: true,
+    alwaysOnTop: false
+  }
+}
+9:32:46 PM [vite] (client) page reload src/electron/main.ts
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'gamificationHandlers.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'main.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[FocusRewardService] Focus check: {
+  timeSinceLastCheck: 5,
+  totalWorkTime: 5.54955,
+  isConsistent: false,
+  workDuration: 5.54955,
+  recentLogsCount: 100,
+  primaryActivity: 'Cursor'
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'WorkPatternAnalyzer.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'FocusRewardService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+9:33:19 PM [vite] (client) page reload src/electron/handlers/gamificationHandlers.ts
+9:33:19 PM [vite] (client) page reload src/electron/main.ts
+9:33:19 PM [vite] (client) page reload src/electron/services/FocusRewardService.ts
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'main.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'gamificationHandlers.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'WorkPatternAnalyzer.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'gamificationHandlers.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'main.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 3s, threshold: 1200s
+[IdleMonitor] System idle time: 1s, threshold: 1200s
+[IdleMonitor] System idle time: 2s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'AppManager.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[ActivityLogger] window_change: {
+  application_name: 'Cursor',
+  window_title: 'ActivityMonitoringService.ts — Tether',
+  process_name: '11646',
+  window_bounds: undefined
+}
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+[IdleMonitor] System idle time: 0s, threshold: 1200s
+^C[PythonServerService] Shutting down Python server service...
+[PythonServerService] Sending SIGTERM to Flask server
+[IdleMonitor] Stopping idle monitoring...
+[WindowMonitor] Stopping window monitoring...
+[PythonServerService] FLASK STDOUT: Starting RAG Pipeline Flask Server...
+Configuration validated for development environment
+Initializing database...
+Attempting to connect to database at: /Users/aarsh/Documents/Repositories/Tether/server/db/dev.db
+Database initialized from schema at /Users/aarsh/Documents/Repositories/Tether/server/services/../schema.sql
+Database ready at: /Users/aarsh/Documents/Repositories/Tether/server/db/dev.db
+Database initialization complete!
+Initializing RAG service...
+Loading vector store from /Users/aarsh/Documents/Repositories/Tether/server/vector_store...
+Vector store loaded!
+RAG service initialized successfully!
+Starting server on 127.0.0.1:5001
+Debug mode: True
+
+/Users/aarsh/Documents/Repositories/Tether/app/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron exited with signal SIGINT
+aarsh@Aarshs-MacBook-Pro app % 
