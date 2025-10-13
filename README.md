@@ -2,6 +2,15 @@
 
 A productivity dock designed specifically for software engineers with ADHD. Tether provides ambient activity monitoring, AI-powered assistance, and gamified focus rewards to help you stay on track.
 
+## App Screenshots
+<img width="726" height="618" alt="architecture" src="https://github.com/user-attachments/assets/7b49d5f5-03f2-457a-861d-7e0dc2c5cc92" />
+
+![UI](https://github.com/user-attachments/assets/a8758840-d39a-47f9-b9b9-3c521626d871)
+<img width="998" height="727" alt="gamification" src="https://github.com/user-attachments/assets/364e1e9c-9bce-465a-bab1-ae561060d2ea" />
+<img width="363" height="111" alt="notification" src="https://github.com/user-attachments/assets/78615b48-70ce-4678-b8a8-2eabc17bdc8f" />
+
+
+
 ## First Time Setup
 
 **Important:** When you first open Tether, it may take 30-60 seconds to fully initialize. The app is setting up its Python backend and indexing research documents in the background. Be patient during this initial startup!
