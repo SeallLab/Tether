@@ -74,7 +74,6 @@ export class WindowManager {
       clearInterval(alwaysOnTopInterval);
     });
 
-    this.logger.info('Windows always-on-top enforcement enabled');
   }
 
   private setupMainWindowHandlers(): void {
@@ -82,7 +81,6 @@ export class WindowManager {
 
     // Handle window.open requests
     this.mainWindow.webContents.setWindowOpenHandler(({ url, features }) => {
-      this.logger.info('Window open request:', { url, features });
       
       // Parse the features string to extract window options
       const options: any = {};
@@ -127,18 +125,15 @@ export class WindowManager {
 
     // Handle new window creation to set up event listeners
     this.mainWindow.webContents.on('did-create-window', (childWindow, details) => {
-      this.logger.info('New window created:', details.url);
       
       // Check if this is a chat window (frameless and transparent)
       // We can identify chat windows by checking the title
       const isChatWindow = childWindow.getTitle() === 'Tether Assistant';
       
       if (isChatWindow) {
-        this.logger.info('Setting up chat window blur handler');
         
         // Close the chat window when it loses focus
         childWindow.on('blur', () => {
-          this.logger.info('Chat window lost focus, closing');
           childWindow.close();
         });
       }
@@ -156,7 +151,7 @@ export class WindowManager {
 
     if (isDev()) {
       this.mainWindow.loadURL("http://localhost:3000");
-      // Enable developer tools in development mode to see console output
+      // DEBUG: Uncomment this to enable developer tools in development mode to see console output
       // this.mainWindow.webContents.openDevTools();
     } else {
       this.mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
@@ -164,7 +159,6 @@ export class WindowManager {
 
     // Check if app was started at login and hide initially
     if (app.getLoginItemSettings().wasOpenedAtLogin) {
-      this.logger.info('App was opened at login, starting hidden');
       this.mainWindow.hide();
     }
   }
@@ -173,10 +167,8 @@ export class WindowManager {
     if (!this.mainWindow) return;
     
     if (this.mainWindow.isVisible()) {
-      this.logger.info('Hiding dock');
       this.mainWindow.hide();
     } else {
-      this.logger.info('Showing dock');
       this.mainWindow.show();
       this.mainWindow.focus();
     }

@@ -34,10 +34,6 @@ import { TrayManager } from "./managers/TrayManager.js";
  * This must be done before configuring services that depend on environment variables
  */
 function loadEnvironmentVariables(): void {
-  console.log('[Container] DEBUG: Loading environment variables...');
-  console.log('[Container] DEBUG: isPackaged:', app.isPackaged);
-  console.log('[Container] DEBUG: __dirname:', __dirname);
-  
   // Load environment variables from .env file
   if (app.isPackaged) {
     // In packaged app, try to load from multiple possible locations
@@ -47,19 +43,16 @@ function loadEnvironmentVariables(): void {
       path.join(__dirname, '..', '..', '..', '.env'),
     ];
     
-    console.log('[Container] DEBUG: Trying to load .env from paths:', possiblePaths);
-    
     let envLoaded = false;
     for (const envPath of possiblePaths) {
       try {
         const result = dotenv.config({ path: envPath });
         if (!result.error) {
-          console.log('[Container] DEBUG: Successfully loaded .env from:', envPath);
           envLoaded = true;
           break;
         }
       } catch (error) {
-        console.log('[Container] DEBUG: Could not load .env from:', envPath, error);
+        console.warn('[Container] DEBUG: Could not load .env from:', envPath, error);
       }
     }
     

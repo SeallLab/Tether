@@ -23,14 +23,11 @@ export class AppManager {
   async initialize(): Promise<void> {
     // Initialize Python server service
     try {
-      this.logger.info('Starting Python server service...');
       await this.pythonServerService.initialize();
-      this.logger.info('Python server service started successfully');
     } catch (error) {
       this.logger.error('Failed to start Python server service:', error as Error);
     }
     
-    this.logger.info('Initialization complete');
   }
 
 
@@ -52,20 +49,16 @@ export class AppManager {
   setupGlobalShortcuts(toggleDockCallback: () => void): void {
     // Register global keyboard shortcut for toggling dock
     const shortcutRegistered = globalShortcut.register('CommandOrControl+Shift+D', () => {
-      this.logger.info('Dock toggle shortcut pressed');
       toggleDockCallback();
     });
 
     if (!shortcutRegistered) {
       this.logger.error('Failed to register global shortcut for dock toggle');
-    } else {
-      this.logger.info('Global shortcut registered: CommandOrControl+Shift+D');
     }
   }
 
   setupAppEventHandlers(showMainWindow: () => void): void {
     app.on('activate', () => {
-      this.logger.info('App activated, showing main window');
       showMainWindow();
     });
   }

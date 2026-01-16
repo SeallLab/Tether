@@ -75,7 +75,6 @@ export class SettingsService {
         // File doesn't exist, create it with defaults
         await this.save();
         this.isLoaded = true;
-        this.logger.info('Created new settings file with defaults');
         return;
       }
 
@@ -90,7 +89,6 @@ export class SettingsService {
       await this.validateAndMigrate();
       
       this.isLoaded = true;
-      this.logger.info('Settings loaded successfully');
     } catch (error) {
       this.logger.error('Error loading settings:', error);
       // Fall back to defaults if loading fails
@@ -115,7 +113,6 @@ export class SettingsService {
         'utf8'
       );
       
-      this.logger.info('Settings saved successfully');
     } catch (error) {
       this.logger.error('Error saving settings:', error);
       throw error;
@@ -199,7 +196,6 @@ export class SettingsService {
     this.settings = { ...DEFAULT_SETTINGS };
     this.settings.monitoring.storage_path = path.join(app.getPath('userData'), 'activity_logs');
     await this.save();
-    this.logger.info('Settings reset to defaults');
   }
 
   /**
@@ -274,7 +270,6 @@ export class SettingsService {
 
     if (needsSave) {
       await this.save();
-      this.logger.info('Settings validated and migrated');
     }
   }
 } 

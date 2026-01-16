@@ -22,7 +22,7 @@ export class NotificationManager {
 
   showDailyPlanNotification(): void {
     if (!Notification.isSupported()) {
-      this.logger.info('Notifications not supported on this system');
+      this.logger.warn('Notifications not supported on this system');
       return;
     }
 
@@ -40,7 +40,6 @@ export class NotificationManager {
     const notification = new Notification(notificationOptions);
 
     notification.on('click', () => {
-      this.logger.info('Daily plan notification clicked');
       const mainWindow = this.windowManager.getMainWindow();
       if (mainWindow) {
         // Send message to main window to show chat dialog

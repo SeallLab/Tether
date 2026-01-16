@@ -106,7 +106,7 @@ export class PythonServerService {
     if (this.isPackaged) {
       const bundledPythonPath = this.findBundledPython();
       if (bundledPythonPath) {
-        this.logger.info('✅ Found bundled Python:', bundledPythonPath);
+        this.logger.info('Found bundled Python:', bundledPythonPath);
         return { pythonPath: bundledPythonPath, isBundled: true };
       }
     }
@@ -191,8 +191,6 @@ export class PythonServerService {
   }
 
   async initialize(): Promise<void> {
-    this.logger.info('Initialize called');
-    
     // Prevent multiple simultaneous initialization attempts
     if (this.isInitializing) {
       this.logger.info('Initialization already in progress, skipping...');
@@ -204,14 +202,11 @@ export class PythonServerService {
     
     try {
       // Ensure server path exists
-      this.logger.info('Checking server path existence...');
       if (!fs.existsSync(this.serverPath)) {
         const error = `Server path does not exist: ${this.serverPath}`;
         this.logger.error(error);
         throw new Error(error);
       }
-      this.logger.info('Server path exists ✓');
-
       // List server directory contents
       try {
         const serverContents = fs.readdirSync(this.serverPath);
@@ -222,7 +217,6 @@ export class PythonServerService {
 
       this.logger.info('Starting virtual environment setup...');
       await this.setupVirtualEnvironment();
-      this.logger.info('Virtual environment setup complete ✓');
 
       this.logger.info('Starting dependency installation...');
       await this.installDependencies();
@@ -245,25 +239,17 @@ export class PythonServerService {
   }
 
   private async setupVirtualEnvironment(): Promise<void> {
-    this.logger.info('setupVirtualEnvironment called');
-    this.logger.info('Setting up virtual environment...');
-    
     // Check if virtual environment already exists
     if (fs.existsSync(this.venvPath)) {
-      this.logger.info('Virtual environment already exists at:', this.venvPath);
       this.logger.info('Virtual environment already exists');
       return;
     }
 
-    this.logger.info('Virtual environment does not exist, creating...');
-
     // Ensure parent directory exists for packaged apps
     if (this.isPackaged) {
       const parentDir = path.dirname(this.venvPath);
-      this.logger.info('Ensuring parent directory exists:', parentDir);
       if (!fs.existsSync(parentDir)) {
         fs.mkdirSync(parentDir, { recursive: true });
-        this.logger.info('Created parent directory');
       }
     }
 
@@ -272,12 +258,6 @@ export class PythonServerService {
       const cwd = this.isPackaged ? path.dirname(this.venvPath) : this.serverPath;
       const venvName = this.isPackaged ? path.basename(this.venvPath) : this.config.venvName;
       
-      this.logger.info('Virtual env creation details:');
-      this.logger.info('  - Python command:', this.config.pythonPath);
-      this.logger.info('  - Working directory:', cwd);
-      this.logger.info('  - Venv name:', venvName);
-      this.logger.info('  - Full command: python3 -m venv', venvName);
-
       const venvProcess = spawn(this.config.pythonPath!, ['-m', 'venv', venvName], {
         cwd: cwd,
         stdio: ['pipe', 'pipe', 'pipe']
@@ -289,27 +269,18 @@ export class PythonServerService {
       venvProcess.stdout?.on('data', (data) => {
         const output = data.toString();
         stdout += output;
-        this.logger.info('VENV STDOUT:', output.trim());
       });
 
       venvProcess.stderr?.on('data', (data) => {
         const output = data.toString();
         stderr += output;
-        this.logger.info('VENV STDERR:', output.trim());
       });
 
       venvProcess.on('close', (code) => {
-        this.logger.info('Virtual env creation finished with code:', code);
-        this.logger.info('Final stdout:', stdout);
-        this.logger.info('Final stderr:', stderr);
-        
         if (code === 0) {
-          this.logger.info('Virtual environment created successfully');
           // Verify the python executable exists
-          if (fs.existsSync(this.pythonExecutable)) {
-            this.logger.info('Python executable created successfully ✓');
-          } else {
-            console.error('[PythonServerService] DEBUG: Python executable not found after creation:', this.pythonExecutable);
+          if (!fs.existsSync(this.pythonExecutable)) {
+            this.logger.error('Python executable not found after creation:', this.pythonExecutable);
           }
           resolve();
         } else {
@@ -328,29 +299,19 @@ export class PythonServerService {
   }
 
   private async installDependencies(): Promise<void> {
-    this.logger.info('installDependencies called');
-    this.logger.info('Installing Python dependencies...');
-    
     const requirementsPath = path.join(this.serverPath, 'requirements.txt');
-    this.logger.info('Requirements path:', requirementsPath);
     
     if (!fs.existsSync(requirementsPath)) {
-      this.logger.info('No requirements.txt found, skipping dependency installation');
+      this.logger.warn('No requirements.txt found, skipping dependency installation');
       return;
     }
-
-    this.logger.info('Requirements file exists ✓');
 
     // Check if pip executable exists
     const pipExecutable = process.platform === 'win32' 
       ? path.join(this.venvPath, 'Scripts', 'pip.exe')
       : path.join(this.venvPath, 'bin', 'pip');
     
-    this.logger.info('Pip executable path:', pipExecutable);
-    this.logger.info('Pip executable exists:', fs.existsSync(pipExecutable));
-
     return new Promise((resolve, reject) => {
-      this.logger.info('Starting pip install process...');
       
       const installProcess = spawn(pipExecutable, ['install', '-r', requirementsPath], {
         cwd: this.serverPath,
@@ -363,7 +324,6 @@ export class PythonServerService {
       installProcess.stdout?.on('data', (data) => {
         const output = data.toString();
         stdout += output;
-        // this.logger.info('PIP INSTALL:', output.trim());
       });
 
       installProcess.stderr?.on('data', (data) => {
@@ -373,10 +333,7 @@ export class PythonServerService {
       });
 
       installProcess.on('close', (code) => {
-        this.logger.info('Pip install finished with code:', code);
-        
         if (code === 0) {
-          this.logger.info('Dependencies installed successfully');
           resolve();
         } else {
           const error = `Dependency installation failed with code ${code}: ${stderr}`;
@@ -396,15 +353,11 @@ export class PythonServerService {
     this.logger.info('Running PDF indexing...');
     
     const indexScriptPath = path.join(this.serverPath, 'index_pdfs.py');
-    this.logger.info('Index script path:', indexScriptPath);
-    
     if (!fs.existsSync(indexScriptPath)) {
-      this.logger.info('No index_pdfs.py found, skipping indexing');
+      this.logger.warn('No index_pdfs.py found, skipping indexing');
       this.isIndexingComplete = true; // Mark as complete since there's nothing to index
       return;
     }
-
-    this.logger.info('Index script exists ✓');
 
     const envVars = this.getEnvironmentVariables();
     this.logger.info('Environment variables for indexing:', {

@@ -191,7 +191,6 @@ export class ChatService {
         data: log.data
       }));
 
-      this.logger.info(`Providing ${relevantLogs.length} activity logs as context`);
       return relevantLogs;
       
     } catch (error) {

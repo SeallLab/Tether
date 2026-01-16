@@ -237,7 +237,6 @@ export class GamificationService {
       } catch {
         await this.save();
         this.isLoaded = true;
-        this.logger.info('Created new gamification file with defaults');
         return;
       }
 
@@ -248,7 +247,6 @@ export class GamificationService {
       await this.validateAndMigrate();
       
       this.isLoaded = true;
-      this.logger.info('Gamification data loaded successfully');
     } catch (error) {
       this.logger.error('Error loading data:', error);
       this.data = { ...DEFAULT_GAMIFICATION_DATA };
@@ -267,7 +265,6 @@ export class GamificationService {
         JSON.stringify(this.data, null, 2),
         'utf8'
       );
-      this.logger.info('Data saved successfully');
     } catch (error) {
       this.logger.error('Error saving data:', error);
       throw error;
@@ -335,7 +332,6 @@ export class GamificationService {
     }
 
     await this.save();
-    this.logger.info(`Awarded ${points} points for ${description}`);
     
     return event;
   }
@@ -566,7 +562,6 @@ export class GamificationService {
     );
 
     await this.save();
-    this.logger.info('First Time Explorer badge earned!');
     
     return badge;
   }

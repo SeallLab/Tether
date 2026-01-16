@@ -55,7 +55,6 @@ export class TrayManager {
       this.showMainWindow();
     });
 
-    this.logger.info('System tray created successfully');
   }
 
   private getTrayIconPath(): string | null {
@@ -85,16 +84,9 @@ export class TrayManager {
       );
     }
 
-    this.logger.info('__dirname =', __dirname);
-    this.logger.info('process.cwd() =', process.cwd());
-    this.logger.info('process.resourcesPath =', process.resourcesPath);
-    this.logger.info('isDev() =', isDev());
-
     for (const iconPath of possiblePaths) {
       try {
-        this.logger.info('Checking path:', iconPath);
         if (fs.existsSync(iconPath)) {
-          this.logger.info('Found tray icon at:', iconPath);
           return iconPath;
         }
       } catch (error) {
@@ -180,7 +172,6 @@ export class TrayManager {
     if (this.tray) {
       this.tray.destroy();
       this.tray = null;
-      this.logger.info('System tray destroyed');
     }
   }
 

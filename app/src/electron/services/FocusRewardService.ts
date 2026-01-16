@@ -28,7 +28,6 @@ export class FocusRewardService {
    * Start monitoring for focus rewards
    */
   async startMonitoring(): Promise<void> {
-    this.logger.info('Starting focus reward monitoring');
     this.lastRewardCheck = Date.now();
     
     // Check for rewards every 10 minutes
@@ -51,13 +50,6 @@ export class FocusRewardService {
       const workPattern = this.workPatternAnalyzer.analyzeWorkPattern(recentLogs, 60);
       const consistentWork = this.workPatternAnalyzer.hasBeenConsistentlyWorking(longerLogs, 60, 5);
       
-      console.log('[FocusRewardService] Focus check:', {
-        timeSinceLastCheck: Math.round(timeSinceLastCheck / 60000),
-        totalWorkTime: workPattern.totalWorkTime,
-        isConsistent: consistentWork.isConsistent,
-        workDuration: consistentWork.workDuration
-      });
-
       // Award points for 60+ minute focus sessions
       if (consistentWork.isConsistent && consistentWork.workDuration >= 60) {
         await this.awardFocusSessionPoints(consistentWork.workDuration, consistentWork.primaryActivity);
@@ -81,8 +73,6 @@ export class FocusRewardService {
     const pointsToAward = Math.floor(durationMinutes / 60);
     
     if (pointsToAward === 0) return;
-
-    this.logger.info(`Awarding ${pointsToAward} points for ${durationMinutes}min focus session`);
 
     const event = await this.gamificationService.awardPoints(
       pointsToAward,
@@ -184,7 +174,6 @@ export class FocusRewardService {
       });
 
       notification.on('click', () => {
-        this.logger.info('Points notification clicked - opening rewards tab');
         this.openRewardsTab();
       });
 
@@ -202,7 +191,6 @@ export class FocusRewardService {
         });
       });
 
-      this.logger.info(`Points notification sent: ${points} points`);
     } catch (error) {
       console.error('[FocusRewardService] Failed to send points notification:', error);
     }

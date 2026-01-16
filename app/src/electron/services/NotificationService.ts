@@ -17,8 +17,6 @@ export class NotificationService {
     
     if (!this.isSupported) {
       this.logger.warn('System notifications not supported on this platform');
-    } else {
-      this.logger.info('System notifications supported');
     }
   }
 
@@ -53,7 +51,6 @@ export class NotificationService {
       );
 
       await this.sendNotification(options, notificationId);
-      this.logger.info('Focus notification sent successfully');
 
     } catch (error) {
       this.logger.error('Failed to send focus notification:', error);
@@ -74,12 +71,10 @@ export class NotificationService {
         });
 
         notification.on('show', () => {
-          this.logger.info('Notification shown');
           resolve();
         });
 
         notification.on('click', () => {
-          this.logger.info('Notification clicked');
           if (notificationId) {
             this.tracker.recordInteraction(notificationId, { clicked: true });
           }
@@ -87,7 +82,6 @@ export class NotificationService {
         });
 
         notification.on('close', () => {
-          this.logger.info('Notification closed');
           if (notificationId) {
             this.tracker.recordInteraction(notificationId, { dismissed: true });
           }
@@ -145,8 +139,6 @@ export class NotificationService {
       );
 
       await this.sendNotification(options, notificationId);
-      this.logger.info('Good job notification sent successfully');
-
     } catch (error) {
       this.logger.error('Failed to send good job notification:', error);
     }
