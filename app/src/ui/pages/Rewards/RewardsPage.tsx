@@ -120,7 +120,7 @@ export function RewardsPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full h-full flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse">
             <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,7 +135,7 @@ export function RewardsPage() {
   }
 
   return (
-    <div className="w-full h-screen flex flex-col bg-gray-50">
+    <div className="w-full h-full flex flex-col bg-gray-50">
       {/* Tab Navigation */}
       <div className="bg-white border-b border-gray-200 px-8 flex-shrink-0 sticky top-0 z-10">
         <div className="flex items-center justify-between">

@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
-
+import { injectable } from 'tsyringe';
 export interface NotificationRecord {
   id: string;
   type: 'idle_warning' | 'good_job' | 'focus_reminder' | 'daily_plan';
@@ -29,6 +29,7 @@ export interface NotificationStats {
   avg_per_day: number;
 }
 
+@injectable()
 export class NotificationTracker {
   private notifications: NotificationRecord[] = [];
   private storagePath: string;

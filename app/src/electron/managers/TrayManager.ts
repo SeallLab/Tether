@@ -1,25 +1,26 @@
-import { Tray, Menu, nativeImage, BrowserWindow, app } from 'electron';
+import { Tray, Menu, nativeImage, app } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { isDev } from '../util.js';
 import fs from 'fs';
+import { injectable, inject } from 'tsyringe';
+import { WindowManager } from './WindowManager.js';
+import { Logger } from '../utils/Logger.js';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+@injectable()
 export class TrayManager {
   private tray: Tray | null = null;
-  private getMainWindow: () => BrowserWindow | null;
-  private toggleDockVisibility: () => void;
+  private logger: Logger;
 
   constructor(
-    getMainWindow: () => BrowserWindow | null,
-    toggleDockVisibility: () => void
+    @inject(WindowManager) private windowManager: WindowManager
   ) {
-    this.getMainWindow = getMainWindow;
-    this.toggleDockVisibility = toggleDockVisibility;
+    this.logger = new Logger({ name: 'TrayManager' });
   }
 
   createTray(): void {
@@ -27,7 +28,7 @@ export class TrayManager {
     const iconPath = this.getTrayIconPath();
     
     if (!iconPath) {
-      console.warn('[TrayManager] No tray icon found, skipping tray creation');
+      this.logger.warn('No tray icon found, skipping tray creation');
       return;
     }
 
@@ -47,14 +48,13 @@ export class TrayManager {
     
     // Handle click events
     this.tray.on('click', () => {
-      this.toggleDockVisibility();
+      this.windowManager.toggleDockVisibility();
     });
 
     this.tray.on('double-click', () => {
       this.showMainWindow();
     });
 
-    console.log('[TrayManager] System tray created successfully');
   }
 
   private getTrayIconPath(): string | null {
@@ -84,31 +84,24 @@ export class TrayManager {
       );
     }
 
-    console.log('[TrayManager] DEBUG: __dirname =', __dirname);
-    console.log('[TrayManager] DEBUG: process.cwd() =', process.cwd());
-    console.log('[TrayManager] DEBUG: process.resourcesPath =', process.resourcesPath);
-    console.log('[TrayManager] DEBUG: isDev() =', isDev());
-
     for (const iconPath of possiblePaths) {
       try {
-        console.log('[TrayManager] DEBUG: Checking path:', iconPath);
         if (fs.existsSync(iconPath)) {
-          console.log('[TrayManager] Found tray icon at:', iconPath);
           return iconPath;
         }
       } catch (error) {
-        console.log('[TrayManager] DEBUG: Error checking path:', iconPath, error);
+        this.logger.error(`Error checking path: ${iconPath}`, error);
       }
     }
 
-    console.warn('[TrayManager] No tray icon found in any of the expected paths:', possiblePaths);
+    this.logger.warn('No tray icon found in any of the expected paths:', possiblePaths);
     return null;
   }
 
   private updateContextMenu(): void {
     if (!this.tray) return;
 
-    const mainWindow = this.getMainWindow();
+    const mainWindow = this.windowManager.getMainWindow();
     const isVisible = mainWindow?.isVisible() || false;
 
     const contextMenu = Menu.buildFromTemplate([
@@ -120,7 +113,7 @@ export class TrayManager {
       {
         label: isVisible ? 'Hide Dock' : 'Show Dock',
         click: () => {
-          this.toggleDockVisibility();
+          this.windowManager.toggleDockVisibility();
           // Update menu after toggling
           setTimeout(() => this.updateContextMenu(), 100);
         }
@@ -133,7 +126,7 @@ export class TrayManager {
       {
         label: 'Settings',
         click: () => {
-          const mainWindow = this.getMainWindow();
+          const mainWindow = this.windowManager.getMainWindow();
           if (mainWindow) {
             mainWindow.webContents.send('open-settings');
             this.showMainWindow();
@@ -143,7 +136,7 @@ export class TrayManager {
       {
         label: 'Chat Assistant',
         click: () => {
-          const mainWindow = this.getMainWindow();
+          const mainWindow = this.windowManager.getMainWindow();
           if (mainWindow) {
             mainWindow.webContents.send('show-chat-dialog', 'tray');
             this.showMainWindow();
@@ -163,7 +156,7 @@ export class TrayManager {
   }
 
   private showMainWindow(): void {
-    const mainWindow = this.getMainWindow();
+    const mainWindow = this.windowManager.getMainWindow();
     if (mainWindow) {
       mainWindow.show();
       mainWindow.focus();
@@ -179,7 +172,6 @@ export class TrayManager {
     if (this.tray) {
       this.tray.destroy();
       this.tray = null;
-      console.log('[TrayManager] System tray destroyed');
     }
   }
 

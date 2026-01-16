@@ -1,16 +1,26 @@
 import { BrowserWindow, app } from 'electron';
 import path from 'path';
+import fs from 'fs';
+import { injectable } from 'tsyringe';
 import { isDev } from '../util.js';
+import { Logger } from '../utils/Logger.js';
 
+@injectable()
 export class WindowManager {
   private mainWindow: BrowserWindow | null = null;
   private preloadPath: string;
-
+  private logger: Logger;
   constructor(preloadPath: string) {
     this.preloadPath = preloadPath;
+    this.logger = new Logger({ name: 'WindowManager' });
   }
 
   createMainWindow(): BrowserWindow {
+    // Check if preload file exists
+    if (!fs.existsSync(this.preloadPath)) {
+      this.logger.error('Preload script not found at:', this.preloadPath);
+    }
+    
     this.mainWindow = new BrowserWindow({
       width: 55,
       height: 115,
@@ -64,7 +74,6 @@ export class WindowManager {
       clearInterval(alwaysOnTopInterval);
     });
 
-    console.log('[WindowManager] Windows always-on-top enforcement enabled');
   }
 
   private setupMainWindowHandlers(): void {
@@ -72,7 +81,6 @@ export class WindowManager {
 
     // Handle window.open requests
     this.mainWindow.webContents.setWindowOpenHandler(({ url, features }) => {
-      console.log('[WindowManager] Window open request:', { url, features });
       
       // Parse the features string to extract window options
       const options: any = {};
@@ -117,18 +125,15 @@ export class WindowManager {
 
     // Handle new window creation to set up event listeners
     this.mainWindow.webContents.on('did-create-window', (childWindow, details) => {
-      console.log('[WindowManager] New window created:', details.url);
       
       // Check if this is a chat window (frameless and transparent)
       // We can identify chat windows by checking the title
       const isChatWindow = childWindow.getTitle() === 'Tether Assistant';
       
       if (isChatWindow) {
-        console.log('[WindowManager] Setting up chat window blur handler');
         
         // Close the chat window when it loses focus
         childWindow.on('blur', () => {
-          console.log('[WindowManager] Chat window lost focus, closing');
           childWindow.close();
         });
       }
@@ -146,7 +151,7 @@ export class WindowManager {
 
     if (isDev()) {
       this.mainWindow.loadURL("http://localhost:3000");
-      // Enable developer tools in development mode to see console output
+      // DEBUG: Uncomment this to enable developer tools in development mode to see console output
       // this.mainWindow.webContents.openDevTools();
     } else {
       this.mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
@@ -154,7 +159,6 @@ export class WindowManager {
 
     // Check if app was started at login and hide initially
     if (app.getLoginItemSettings().wasOpenedAtLogin) {
-      console.log('[WindowManager] App was opened at login, starting hidden');
       this.mainWindow.hide();
     }
   }
@@ -163,10 +167,8 @@ export class WindowManager {
     if (!this.mainWindow) return;
     
     if (this.mainWindow.isVisible()) {
-      console.log('[WindowManager] Hiding dock');
       this.mainWindow.hide();
     } else {
-      console.log('[WindowManager] Showing dock');
       this.mainWindow.show();
       this.mainWindow.focus();
     }

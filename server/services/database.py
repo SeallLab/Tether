@@ -4,8 +4,6 @@ Database initialization and management
 
 import sqlite3
 import os
-from typing import Optional
-
 
 def init_database(db_path: str = "conversations.db") -> bool:
     """

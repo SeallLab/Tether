@@ -1,15 +1,30 @@
+import "reflect-metadata";
 import { app } from "electron";
+import { configureContainer, container } from './container.js';
 import { AppManager, WindowManager, NotificationManager, TrayManager } from './managers/index.js';
 import { setupActivityHandlers, setupLLMHandlers, setupWindowHandlers, setupChatHandlers, setupSettingsHandlers, setupNotificationHandlers, setupPythonServerHandlers, setupGamificationHandlers } from './handlers/index.js';
+import { ChatService } from "./services/ChatService.js";
+import { NotificationService } from "./services/NotificationService.js";
+import { GamificationService } from "./services/GamificationService.js";
+import { ActivityMonitoringService } from "./services/ActivityMonitoringService.js";
+import { PythonServerService } from "./services/PythonServerService.js";
+import { SettingsService } from "./services/SettingsService.js";
 
-// Initialize managers
-const appManager = new AppManager();
-const windowManager = new WindowManager(appManager.getPreloadPath());
-const notificationManager = new NotificationManager(() => windowManager.getMainWindow());
-const trayManager = new TrayManager(
-  () => windowManager.getMainWindow(),
-  () => windowManager.toggleDockVisibility()
-);
+// Configure dependency injection container
+configureContainer();
+
+// Resolve all managers and services from container
+const appManager = container.resolve(AppManager);
+const chatService = container.resolve(ChatService);
+const windowManager = container.resolve(WindowManager);
+const notificationManager = container.resolve(NotificationManager);
+const trayManager = container.resolve(TrayManager);
+const notificationService = container.resolve(NotificationService);
+const gamificationService = container.resolve(GamificationService);
+const activityService = container.resolve(ActivityMonitoringService);
+const pythonServerService = container.resolve(PythonServerService);
+const settingsService = container.resolve(SettingsService);
+
 
 app.on("ready", async () => {
   // Set App User Model ID for Windows (for proper taskbar grouping and notification display)
@@ -21,18 +36,13 @@ app.on("ready", async () => {
   await appManager.initialize();
   
   // Setup IPC handlers BEFORE creating the window to avoid timing issues
-  const activityService = appManager.getActivityMonitoringService();
-  const chatService = activityService.getChatService();
-  const settingsService = appManager.getSettingsService();
-  const pythonServerService = appManager.getPythonServerService();
-  
   setupActivityHandlers(activityService);
   setupLLMHandlers(activityService);
   setupChatHandlers(chatService);
   setupSettingsHandlers(settingsService);
-  setupNotificationHandlers(activityService.getNotificationService());
+  setupNotificationHandlers(notificationService);
   setupPythonServerHandlers(pythonServerService);
-  setupGamificationHandlers(activityService.getGamificationService(), activityService.getNotificationService());
+  setupGamificationHandlers(gamificationService, notificationService);
   setupWindowHandlers(
     () => windowManager.getMainWindow(),
     () => windowManager.toggleDockVisibility(),
@@ -48,7 +58,19 @@ app.on("ready", async () => {
   }
   
   // Start activity monitoring
-  await appManager.startActivityMonitoring();
+  await activityService.start();
+  
+  // Initialize LLM service with API key
+  const googleApiKey = process.env.GOOGLE_API_KEY;
+  if (googleApiKey) {
+    console.log('[Main] Found Google API key in environment, initializing with Gemini');
+    activityService.initializeLLM(googleApiKey);
+  } else {
+    console.log('[Main] No Google API key found, using mock provider');
+    activityService.initializeLLM();
+  }
+  console.log('[Main] LLM service initialized');
+  
   // Setup global shortcuts
   appManager.setupGlobalShortcuts(() => {
     windowManager.toggleDockVisibility();
@@ -75,7 +97,7 @@ app.on('before-quit', async (event) => {
   
   try {
     // Shutdown Python server
-    await appManager.getPythonServerService().shutdown();
+    await pythonServerService.shutdown();
     
     // Clear any timers or notifications
     notificationManager.clearStartupTimer();
@@ -99,7 +121,4 @@ app.on('before-quit', async (event) => {
 });
 
 // Setup app event handlers (for activate event on macOS)
-appManager.setupAppEventHandlers(
-  () => windowManager.showMainWindow(),
-  () => notificationManager.clearStartupTimer()
-);
+appManager.setupAppEventHandlers(() => windowManager.showMainWindow());

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useActivityMonitoring } from '../../hooks/useActivityMonitoring';
 import { 
-  GeneralTab, 
-  AboutTab, 
   LoadingScreen 
 } from '../../components';
-import { TabNavigation, ActivityMonitoringTab, LLMAssistantTab } from './components';
+import { TabNavigation, ActivityMonitoringTab } from './components';
 import type { TabType, LLMStatus } from '../../types/settings';
 import { RewardsPage } from '../Rewards';
 import type { MonitoringConfig } from '../../../shared/types';
@@ -20,15 +18,6 @@ const tabs = [
       </svg>
     )
   },
-  // { 
-  //   id: 'llm' as TabType, 
-  //   label: 'AI', 
-  //   icon: (
-  //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-  //     </svg>
-  //   )
-  // },
   { 
     id: 'rewards' as TabType, 
     label: 'Rewards', 
@@ -38,33 +27,11 @@ const tabs = [
       </svg>
     )
   },
-  { 
-    id: 'general' as TabType, 
-    label: 'General', 
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    )
-  },
-  { 
-    id: 'about' as TabType, 
-    label: 'About', 
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )
-  }
 ];
 
 function Settings() {
   const [activeTab, setActiveTab] = useState<TabType>('activity');
   const [llmStatus, setLLMStatus] = useState<LLMStatus | null>(null);
-  const [apiKey, setApiKey] = useState('');
-  const [isUpdatingLLM, setIsUpdatingLLM] = useState(false);
-  const [llmMessage, setLLMMessage] = useState('');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   
   const { 
@@ -126,28 +93,6 @@ function Settings() {
     await updateConfig(newConfig);
   };
 
-  const handleLLMApiKeyUpdate = async () => {
-    if (!window.electron?.llm || !apiKey.trim()) return;
-    
-    setIsUpdatingLLM(true);
-    setLLMMessage('');
-    
-    try {
-      const result = await window.electron.llm.setApiKey(apiKey.trim());
-      if (result.success) {
-        setLLMStatus(result.data);
-        setLLMMessage('API key updated successfully!');
-        setApiKey('');
-      } else {
-        setLLMMessage(`Failed to update API key: ${result.error}`);
-      }
-    } catch (error) {
-      setLLMMessage(`Error: ${error}`);
-    } finally {
-      setIsUpdatingLLM(false);
-    }
-  };
-
   // Show loading state while initial data is being fetched
   if (isInitialLoading) {
     return <LoadingScreen />;
@@ -167,32 +112,12 @@ function Settings() {
             onConfigChange={handleConfigChange}
           />
         );
-
-      case 'llm':
-        return (
-          <LLMAssistantTab
-            llmStatus={llmStatus}
-            apiKey={apiKey}
-            isUpdatingLLM={isUpdatingLLM}
-            llmMessage={llmMessage}
-            onApiKeyChange={setApiKey}
-            onApiKeyUpdate={handleLLMApiKeyUpdate}
-          />
-        );
-
       case 'rewards':
         return (
           <div className="h-full bg-gray-50">
             <RewardsPage />
           </div>
         );
-
-      case 'general':
-        return <GeneralTab />;
-
-      case 'about':
-        return <AboutTab />;
-
       default:
         return null;
     }

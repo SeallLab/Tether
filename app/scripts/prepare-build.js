@@ -50,14 +50,14 @@ const PYTHON_DOWNLOADS = {
 function ensureDirectoryExists(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
-    console.log(`✅ Created directory: ${dirPath}`);
+    console.log(`Created directory: ${dirPath}`);
   } else {
-    console.log(`✅ Directory exists: ${dirPath}`);
+    console.log(`Directory exists: ${dirPath}`);
   }
 }
 
 function cleanupBuildArtifacts() {
-  console.log("🧹 Cleaning up build artifacts...");
+  console.log("Cleaning up build artifacts");
 
   const cleanupPaths = [
     path.join(serverPath, "__pycache__"),
@@ -68,13 +68,13 @@ function cleanupBuildArtifacts() {
   cleanupPaths.forEach((cleanupPath) => {
     if (fs.existsSync(cleanupPath)) {
       fs.rmSync(cleanupPath, { recursive: true, force: true });
-      console.log(`🗑️  Removed: ${cleanupPath}`);
+      console.log(`Removed: ${cleanupPath}`);
     }
   });
 }
 
 function validateServerFiles() {
-  console.log("📋 Validating server files...");
+  console.log("Validating server files");
 
   const requiredFiles = [
     "app.py",
@@ -90,22 +90,22 @@ function validateServerFiles() {
   );
 
   if (missingFiles.length > 0) {
-    console.error("❌ Missing required server files:", missingFiles);
+    console.error("Missing required server files:", missingFiles);
     process.exit(1);
   }
 
-  console.log("✅ All required server files are present");
+  console.log("All required server files are present");
 }
 
 function checkEnvironmentVariables() {
-  console.log("🔑 Checking environment variables...");
+  console.log("Checking environment variables...");
 
   // Check for .env file
   const envPath = path.join(appPath, ".env");
   if (!fs.existsSync(envPath)) {
-    console.warn("⚠️  No .env file found. PDF indexing will be skipped.");
+    console.warn("No .env file found. PDF indexing will be skipped.");
     console.warn(
-      "⚠️  Create .env file with GOOGLE_API_KEY to enable RAG features."
+      "Create .env file with GOOGLE_API_KEY to enable RAG features."
     );
     return false;
   }
@@ -119,18 +119,18 @@ function checkEnvironmentVariables() {
 
   if (!hasApiKey) {
     console.warn(
-      "⚠️  GOOGLE_API_KEY not found in .env file. PDF indexing will be skipped."
+      "GOOGLE_API_KEY not found in .env file. PDF indexing will be skipped."
     );
-    console.warn("⚠️  Set GOOGLE_API_KEY in .env to enable RAG features.");
+    console.warn("Set GOOGLE_API_KEY in .env to enable RAG features.");
     return false;
   }
 
-  console.log("✅ Environment variables configured");
+  console.log("Environment variables configured");
   return true;
 }
 
 async function downloadFile(url, filePath) {
-  console.log(`📥 Downloading: ${url}`);
+  console.log(`Downloading: ${url}`);
 
   return new Promise((resolve, reject) => {
     const file = createWriteStream(filePath);
@@ -165,11 +165,11 @@ async function downloadFile(url, filePath) {
 }
 
 async function setupBundledPython() {
-  console.log("Setting up bundled Python distributions...");
+  console.log("Setting up bundled Python distributions");
 
   // For now, we'll focus on the current platform for build-time setup
   const currentPlatform = `${process.platform}-${process.arch}`;
-  console.log(`📱 Current platform: ${currentPlatform}`);
+  console.log(`Current platform: ${currentPlatform}`);
 
   const pythonConfig = PYTHON_DOWNLOADS[currentPlatform];
 
@@ -190,11 +190,11 @@ async function setupBundledPython() {
   // Check if already downloaded and extracted
   const pythonExecutable = findBundledPythonExecutable(platformBundlePath);
   if (pythonExecutable && fs.existsSync(pythonExecutable)) {
-    console.log("Bundled Python already exists at:", pythonExecutable);
+    console.log("Bundled Python already exists", pythonExecutable);
     return pythonExecutable;
   }
 
-  console.log(`Downloading Python bundle for ${currentPlatform}...`);
+  console.log(`Downloading Python bundle for ${currentPlatform}`);
 
   // Download Python
   const downloadPath = path.join(platformBundlePath, "python-bundle.tar.gz");
@@ -205,7 +205,7 @@ async function setupBundledPython() {
 
     // Extract
     if (pythonConfig.extract) {
-      console.log("Extracting Python bundle...");
+      console.log("Extracting Python bundle");
       await runCommand(
         "tar",
         ["-xzf", "python-bundle.tar.gz"],
@@ -351,7 +351,7 @@ async function indexPDFs(pythonExecutable) {
     envVars
   );
 
-  console.log("✅ PDF indexing completed successfully");
+  console.log("PDF indexing completed successfully");
   return true;
 }
 
@@ -430,7 +430,7 @@ function updatePackageJsonScripts() {
 }
 
 async function main() {
-  console.log("Preparing Tether app for building...\n");
+  console.log("Preparing Tether app for building\n");
 
   let pythonExecutable = null;
   let bundledPython = null;
@@ -461,7 +461,7 @@ async function main() {
     // Update package.json
     updatePackageJsonScripts();
 
-    console.log("\nBuild preparation complete!");
+    console.log("\nBuild preparation complete");
     console.log("\nNext steps:");
     console.log("1. Run: npm run build");
     console.log("2. Run: npm run dist:mac (or dist:win/dist:linux)");

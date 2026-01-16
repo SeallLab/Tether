@@ -102,10 +102,10 @@ function App() {
     <>
       <div className={`dock-container ${getThemeClassName(currentTheme)}`}>
         <div className="dock-content">
-          <div className="dock-item" onClick={handleChatClick}>
+          <div className="dock-item cursor-pointer" onClick={handleChatClick}>
             <ChatBubbleLeftEllipsisIcon />
           </div>
-          <div className="dock-item" onClick={handleSettingsClick}>
+          <div className="dock-item cursor-pointer" onClick={handleSettingsClick}>
             <Cog6ToothIcon />
           </div>
         </div>

@@ -5,6 +5,7 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { ActivityLogger } from '../services/ActivityLogger.js';
 
 const execAsync = promisify(exec);
 
@@ -12,8 +13,8 @@ export class WindowMonitor extends BaseMonitor {
   private currentWindow: WindowData | null = null;
   private pollInterval: number;
 
-  constructor(logger: any, pollInterval: number = 2000) { // Poll every 2 seconds
-    super(logger);
+  constructor(activityLogger: ActivityLogger, pollInterval: number = 2000) {
+    super(activityLogger);
     this.pollInterval = pollInterval;
   }
 
@@ -50,6 +51,7 @@ export class WindowMonitor extends BaseMonitor {
       
       if (windowData && this.hasWindowChanged(windowData)) {
         this.currentWindow = windowData;
+        console.log('[WindowMonitor] Window changed:', windowData);
         this.logger.log(ActivityType.WINDOW_CHANGE, windowData);
       }
     } catch (error) {

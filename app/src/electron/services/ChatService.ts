@@ -1,31 +1,25 @@
 import { ChatMessage, ChatSession, ChatRequest, ChatResponse } from '../../shared/types.js';
 import { ActivityLogger } from './ActivityLogger.js';
 import { v4 as uuidv4 } from 'uuid';
+import { PythonServerService } from './PythonServerService.js';
+import { injectable, inject } from 'tsyringe';
+import { Logger } from '../utils/Logger.js';
 
+@injectable()
 export class ChatService {
   private activityLogger: ActivityLogger;
-  private pythonServerService: any; // Will be injected
-
-  constructor(activityLogger: ActivityLogger, pythonServerService?: any) {
+  private pythonServerService: PythonServerService;
+  private logger: Logger;
+  constructor(
+    @inject(ActivityLogger) activityLogger: ActivityLogger,
+    @inject(PythonServerService) pythonServerService: PythonServerService
+  ) {
     this.activityLogger = activityLogger;
     this.pythonServerService = pythonServerService;
-  }
-
-  setPythonServerService(pythonServerService: any): void {
-    this.pythonServerService = pythonServerService;
+    this.logger = new Logger({ name: 'ChatService' });
   }
 
   async sendMessage(request: ChatRequest): Promise<ChatResponse> {
-    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
-      console.error('[ChatService] Python server service not properly initialized');
-      // Return fallback response
-      return {
-        message: this.getFallbackResponse(request.message, request.context || 'general'),
-        sessionId: request.sessionId || 'fallback',
-        messageId: 'fallback'
-      };
-    }
-
     try {
       let sessionId = request.sessionId;
       
@@ -60,7 +54,7 @@ export class ChatService {
       };
 
     } catch (error) {
-      console.error('[ChatService] Error sending message:', error);
+      this.logger.error('Error sending message:', error);
       
       // Fallback response
       return {
@@ -98,12 +92,6 @@ export class ChatService {
   }
 
   async createNewSession(context: string = 'general'): Promise<string> {
-    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
-      console.error('[ChatService] Python server service not properly initialized');
-      // Return a fallback session ID
-      return `fallback-${Date.now()}`;
-    }
-
     try {
       const response = await this.pythonServerService.apiRequest('POST', '/session', {
         context: context
@@ -121,23 +109,13 @@ export class ChatService {
       return data.session_id;
 
     } catch (error) {
-      console.error('[ChatService] Error creating session:', error);
+      this.logger.error('Error creating session:', error);
       // Return a fallback session ID
       return `fallback-${uuidv4()}`;
     }
   }
 
   async getChatSessions(): Promise<ChatSession[]> {
-    if (!this.pythonServerService) {
-      console.warn('[ChatService] Python server service not available, returning empty sessions');
-      return [];
-    }
-
-    if (typeof this.pythonServerService.apiRequest !== 'function') {
-      console.error('[ChatService] Python server service apiRequest method not available');
-      return [];
-    }
-
     try {
       const response = await this.pythonServerService.apiRequest('GET', '/sessions');
 
@@ -153,17 +131,12 @@ export class ChatService {
       return data.data || [];
 
     } catch (error) {
-      console.error('[ChatService] Error getting sessions:', error);
+      this.logger.error('Error getting sessions:', error);
       return [];
     }
   }
 
   async getChatHistory(sessionId: string): Promise<ChatMessage[]> {
-    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
-      console.warn('[ChatService] Python server service not available');
-      return [];
-    }
-
     try {
       const response = await this.pythonServerService.apiRequest('GET', `/conversation/${sessionId}`);
 
@@ -179,17 +152,12 @@ export class ChatService {
       return data.data || [];
 
     } catch (error) {
-      console.error('[ChatService] Error getting chat history:', error);
+      this.logger.error('Error getting chat history:', error);
       return [];
     }
   }
 
   async deleteSession(sessionId: string): Promise<boolean> {
-    if (!this.pythonServerService || typeof this.pythonServerService.apiRequest !== 'function') {
-      console.warn('[ChatService] Python server service not available');
-      return false;
-    }
-
     try {
       const response = await this.pythonServerService.apiRequest('DELETE', `/conversation/${sessionId}`);
 
@@ -201,7 +169,7 @@ export class ChatService {
       return data.success || false;
 
     } catch (error) {
-      console.error('[ChatService] Error deleting session:', error);
+      this.logger.error('Error deleting session:', error);
       return false;
     }
   }
@@ -223,11 +191,10 @@ export class ChatService {
         data: log.data
       }));
 
-      console.log(`[ChatService] Providing ${relevantLogs.length} activity logs as context`);
       return relevantLogs;
       
     } catch (error) {
-      console.error('[ChatService] Error getting activity context:', error);
+      this.logger.error('Error getting activity context:', error);
       return [];
     }
   }

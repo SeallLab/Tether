@@ -5,11 +5,8 @@ Handles database operations for conversation sessions and messages
 
 import sqlite3
 import json
-import os
 from typing import List, Dict, Any, Optional
-from datetime import datetime
 from uuid import uuid4
-
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 
 
