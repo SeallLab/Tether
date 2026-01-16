@@ -38,6 +38,9 @@ declare global {
         getHistory: (sessionId: string) => Promise<{ success: boolean; data?: any[]; error?: string }>;
         createSession: (context?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
         deleteSession: (sessionId: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getChecklist: (sessionId: string, messageId: string) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        saveChecklist: (sessionId: string, messageId: string, tasks: any[]) => Promise<{ success: boolean; data?: any; error?: string }>;
+        updateChecklistItem: (sessionId: string, messageId: string, itemId: string, isCompleted: boolean) => Promise<{ success: boolean; data?: any; error?: string }>;
         open: (context?: string) => Promise<{ success: boolean; error?: string }>;
         showDailyPlanNotification: () => Promise<{ success: boolean; error?: string }>;
       };

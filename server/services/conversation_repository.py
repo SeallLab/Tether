@@ -20,6 +20,7 @@ class ConversationRepository:
         Note: Database must be initialized separately before creating the repository
         """
         self.db_path = db_path
+        self._run_migrations()
     
     def create_session(self, session_id: str = None, name: str = None, metadata: Dict[str, Any] = None) -> str:
         """Create a new conversation session"""
@@ -105,7 +106,7 @@ class ConversationRepository:
             )
             return cursor.lastrowid
     
-    def add_message_simple(self, session_id: str, message_type: str, content: str, metadata: Dict[str, Any] = None) -> int:
+    def add_message_simple(self, session_id: str, message_type: str, content: str, metadata: Dict[str, Any] = None, mode: str = "general") -> int:
         """Add a message to a session with simple parameters"""
         # Validate message type
         valid_types = ["human", "ai", "system", "tool", "user", "assistant"]
@@ -127,8 +128,8 @@ class ConversationRepository:
             
             # Insert message
             cursor = conn.execute(
-                "INSERT INTO messages (session_id, message_type, content, metadata) VALUES (?, ?, ?, ?)",
-                (session_id, message_type, content, json.dumps(metadata) if metadata else None)
+                "INSERT INTO messages (session_id, message_type, content, metadata, mode) VALUES (?, ?, ?, ?, ?)",
+                (session_id, message_type, content, json.dumps(metadata) if metadata else None, mode)
             )
             return cursor.lastrowid
     
@@ -162,8 +163,10 @@ class ConversationRepository:
             
             return [
                 {
+                    "id": row["id"],
                     "type": row["message_type"],
                     "content": row["content"],
+                    "mode": row["mode"] if "mode" in row.keys() else "general",
                     "metadata": json.loads(row["metadata"]) if row["metadata"] else {},
                     "timestamp": row["created_at"]
                 }
@@ -284,4 +287,132 @@ class ConversationRepository:
             print(f"Error converting row to message: {e}")
             return None
         
-        return None 
+        return None
+    
+    def _run_migrations(self):
+        """Run database migrations for schema changes"""
+        with sqlite3.connect(self.db_path) as conn:
+            # Check if mode column exists in messages table
+            cursor = conn.execute("PRAGMA table_info(messages)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if "mode" not in columns:
+                # Add mode column to messages table
+                conn.execute("ALTER TABLE messages ADD COLUMN mode TEXT DEFAULT 'general'")
+                print("Migration: Added 'mode' column to messages table")
+    
+    def save_checklist(self, session_id: str, message_id: int, tasks: List[Dict[str, Any]]) -> bool:
+        """
+        Save a checklist for a Blueprint mode message
+        
+        Args:
+            session_id: Session ID
+            message_id: Message ID
+            tasks: List of task dictionaries with 'task_text' and optional 'is_completed', 'position'
+        
+        Returns:
+            True if successful
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # First, delete existing items for this message to prevent duplicates
+                conn.execute(
+                    "DELETE FROM checklists WHERE session_id = ? AND message_id = ?",
+                    (session_id, message_id)
+                )
+                
+                for idx, task in enumerate(tasks):
+                    task_text = task.get('task_text', task.get('text', ''))
+                    is_completed = task.get('is_completed', False)
+                    position = task.get('position', idx)
+                    
+                    conn.execute(
+                        """INSERT INTO checklists (session_id, message_id, task_text, is_completed, position)
+                           VALUES (?, ?, ?, ?, ?)""",
+                        (session_id, message_id, task_text, is_completed, position)
+                    )
+            return True
+        except Exception as e:
+            print(f"Error saving checklist: {e}")
+            return False
+    
+    def get_checklist(self, session_id: str, message_id: int) -> List[Dict[str, Any]]:
+        """
+        Get checklist items for a specific message
+        
+        Args:
+            session_id: Session ID
+            message_id: Message ID
+        
+        Returns:
+            List of checklist items
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(
+                """SELECT * FROM checklists 
+                   WHERE session_id = ? AND message_id = ? 
+                   ORDER BY position ASC""",
+                (session_id, message_id)
+            )
+            rows = cursor.fetchall()
+            
+            return [
+                {
+                    "id": row["id"],
+                    "taskText": row["task_text"],
+                    "isCompleted": bool(row["is_completed"]),
+                    "position": row["position"],
+                    "createdAt": row["created_at"],
+                    "updatedAt": row["updated_at"]
+                }
+                for row in rows
+            ]
+    
+    def update_checklist_item(self, session_id: str, message_id: int, item_id: int, is_completed: bool) -> bool:
+        """
+        Update the completion status of a checklist item
+        
+        Args:
+            session_id: Session ID
+            message_id: Message ID
+            item_id: Checklist item ID
+            is_completed: New completion status
+        
+        Returns:
+            True if successful
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    """UPDATE checklists 
+                       SET is_completed = ?, updated_at = CURRENT_TIMESTAMP 
+                       WHERE id = ? AND session_id = ? AND message_id = ?""",
+                    (is_completed, item_id, session_id, message_id)
+                )
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error updating checklist item: {e}")
+            return False
+    
+    def delete_checklist(self, session_id: str, message_id: int) -> bool:
+        """
+        Delete all checklist items for a message
+        
+        Args:
+            session_id: Session ID
+            message_id: Message ID
+        
+        Returns:
+            True if successful
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "DELETE FROM checklists WHERE session_id = ? AND message_id = ?",
+                    (session_id, message_id)
+                )
+            return True
+        except Exception as e:
+            print(f"Error deleting checklist: {e}")
+            return False 
