@@ -62,4 +62,37 @@ export function setupChatHandlers(chatService: ChatService) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
+
+  // Get checklist for a message
+  ipcMain.handle(IPC_CHANNELS.GET_CHECKLIST, async (event, sessionId: string, messageId: string) => {
+    try {
+      const checklist = await chatService.getChecklist(sessionId, messageId);
+      return { success: true, data: checklist };
+    } catch (error) {
+      console.error('[IPC] Get checklist error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  // Save checklist for a message
+  ipcMain.handle(IPC_CHANNELS.SAVE_CHECKLIST, async (event, sessionId: string, messageId: string, tasks: any[]) => {
+    try {
+      const result = await chatService.saveChecklist(sessionId, messageId, tasks);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('[IPC] Save checklist error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  // Update checklist item
+  ipcMain.handle(IPC_CHANNELS.UPDATE_CHECKLIST_ITEM, async (event, sessionId: string, messageId: string, itemId: string, isCompleted: boolean) => {
+    try {
+      const result = await chatService.updateChecklistItem(sessionId, messageId, itemId, isCompleted);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('[IPC] Update checklist item error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
 } 

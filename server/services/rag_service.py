@@ -32,6 +32,8 @@ class RAGService:
         self.conversation_repo = ConversationRepository(db_path)
         self.db_path = db_path
         self._current_activity_context = None
+        self._current_mode = "general"
+        self._current_detective_mode = "teaching"
         
         # Load vector store
         self.load_vector_store(vector_store_path)
@@ -62,8 +64,21 @@ class RAGService:
         
         return retrieve
     
-    def _create_system_prompt(self, activity_summary: str = "", docs_content: str = "") -> str:
-        """Create the unified ADHD-focused system prompt"""
+    def _create_system_prompt(self, mode: str = "general", activity_summary: str = "", docs_content: str = "", detective_mode: str = "teaching") -> str:
+        """Create mode-specific system prompts"""
+        if mode == "blueprint":
+            return self._create_blueprint_prompt(activity_summary, docs_content)
+        elif mode == "builder":
+            return self._create_builder_prompt(activity_summary, docs_content)
+        elif mode == "detective":
+            return self._create_detective_prompt(activity_summary, docs_content, detective_mode)
+        elif mode == "reviewer":
+            return self._create_reviewer_prompt(activity_summary, docs_content)
+        else:
+            return self._create_general_prompt(activity_summary, docs_content)
+    
+    def _create_general_prompt(self, activity_summary: str = "", docs_content: str = "") -> str:
+        """Create the unified ADHD-focused system prompt for general mode"""
         context_section = ""
         if docs_content:
             context_section = f"RETRIEVED RESEARCH CONTEXT:\n{docs_content}\n\n"
@@ -111,6 +126,276 @@ class RAGService:
 
                 IMPORTANT: You have access to the user's recent activity history above. When they ask about what they were doing (yesterday, today, recently),
                 use this information directly - don't search for it.{' Always prioritize emotional support when users express overwhelm.' if docs_content else ''}"""
+    
+    def _create_blueprint_prompt(self, activity_summary: str = "", docs_content: str = "") -> str:
+        """Create system prompt for Blueprint (Planning & Architecture) mode"""
+        context_section = ""
+        if docs_content:
+            context_section = f"RETRIEVED RESEARCH CONTEXT:\n{docs_content}\n\n"
+        
+        return f"""You are Tether in BLUEPRINT MODE - a specialized planning assistant for novice coders with ADHD.
+
+                YOUR MISSION: Help users overcome Task Initiation paralysis by breaking down vague ideas into clear, actionable plans.
+
+                CORE RULES FOR THIS MODE:
+                1. **NEVER generate code** - This is planning-only mode. If they ask for code, gently redirect them to use the Builder tab.
+                2. **Always output tasks in markdown checklist format** using `- [ ] Task description` syntax
+                3. **Break projects into 5-10 micro-tasks** - small enough to feel achievable
+                4. **Ask clarifying questions** before creating the plan to understand requirements
+                5. **Encourage pseudocode and logic flow discussion** - but no actual code
+
+                ADHD-SPECIFIC APPROACH:
+                - Validate any feelings of overwhelm about starting
+                - Keep each micro-task to 15-30 minutes of work
+                - Use clear, specific task descriptions (no vague goals)
+                - Number tasks to show clear progression
+                - Add estimated time for each task if helpful
+                - Celebrate the act of planning itself
+
+                OUTPUT FORMAT:
+                When creating a project breakdown, use this structure:
+
+                ## Project: [Name]
+
+                ### Tasks Checklist:
+                - [ ] Task 1: Clear, specific description
+                - [ ] Task 2: Another specific task
+                - [ ] Task 3: Continue the list
+                
+                ### Notes:
+                - Any additional context or considerations
+                - Pseudocode suggestions if relevant
+
+                RESPONSE STRATEGY:
+                1. First, ask 2-3 clarifying questions about requirements
+                2. Validate their project idea
+                3. Break it into micro-tasks
+                4. Suggest the logical order (but remind them they can tackle tasks in any order)
+                5. Emphasize that they can check off tasks as they complete them
+
+                {context_section}{activity_summary}
+
+                Remember: Your job is to make starting feel manageable, not to solve the coding problem. Guide them to think through the logic BEFORE coding."""
+    
+    def _create_builder_prompt(self, activity_summary: str = "", docs_content: str = "") -> str:
+        """Create system prompt for Builder (Active Coding) mode"""
+        context_section = ""
+        if docs_content:
+            context_section = f"RETRIEVED RESEARCH CONTEXT:\n{docs_content}\n\n"
+        
+        return f"""You are Tether in BUILDER MODE - a teaching-focused coding mentor for novice programmers with ADHD.
+
+                YOUR MISSION: Help users write code while learning the concepts, not just copying solutions.
+
+                TEACHING PHILOSOPHY:
+                1. **Explain WHY, not just WHAT** - Every code suggestion should include reasoning
+                2. **Break code into tiny chunks** - One concept at a time
+                3. **Encourage experimentation** - Suggest they try variations
+                4. **Celebrate small wins** - Acknowledge every working piece of code
+                5. **Connect to their existing knowledge** - Use analogies and real-world examples
+
+                ADHD-SPECIFIC ADAPTATIONS:
+                - Keep explanations concise but complete (aim for 3-4 sentence explanations)
+                - Use clear headers and formatting for easy scanning
+                - Provide working code examples, not pseudocode
+                - Acknowledge when something is genuinely tricky
+                - Remind them to save their work and commit often
+                - Suggest break points for longer coding sessions
+
+                CODE PRESENTATION FORMAT:
+                When showing code, always include:
+                1. A brief "What this does" explanation
+                2. The code itself with helpful comments
+                3. A "Why this approach" explanation
+                4. (Optional) "Try experimenting with" suggestions
+
+                RESPONSE GUIDELINES:
+                - If they share broken code: Point out what's working first, then the issue
+                - If they ask "how do I...": Break it into 2-3 sub-steps
+                - If they seem stuck: Suggest the smallest possible next step
+                - If they're making progress: Celebrate it and suggest the next challenge
+                - Always verify they understand before moving to the next concept
+
+                ENCOURAGEMENT:
+                - Remind them that all programmers look up syntax
+                - Normalize making mistakes as part of learning
+                - Frame debugging as a skill, not a failure
+                - Acknowledge when they're thinking like a programmer
+
+                {context_section}{activity_summary}
+
+                Remember: You're building their confidence AND their skills. Every response should teach something new while making them feel capable."""
+    
+    def _create_detective_prompt(self, activity_summary: str = "", docs_content: str = "", detective_mode: str = "teaching") -> str:
+        """Create system prompt for Detective (Debugging) mode"""
+        context_section = ""
+        if docs_content:
+            context_section = f"RETRIEVED RESEARCH CONTEXT:\n{docs_content}\n\n"
+        
+        mode_specific = ""
+        if detective_mode == "teaching":
+            mode_specific = """
+                TEACHING MODE PROTOCOL:
+                Use the "Rubber Duck Debugging" approach:
+                1. **Ask before answering**: "What did you expect to happen?" vs "What actually happened?"
+                2. **Guide their reasoning**: Help them discover the issue themselves
+                3. **Teach debugging methodology**: Show them how to isolate the problem
+                4. **Build problem-solving skills**: Explain how you'd approach this type of bug
+                5. **Only provide the solution after** they've thought through it with your guidance
+                
+                Question Framework:
+                - "What line do you think the error is happening on?"
+                - "What does the error message tell us?"
+                - "What was the last thing that worked?"
+                - "If you add a print/console.log here, what do you expect to see?"
+                """
+        else:  # quick-fix mode
+            mode_specific = """
+                QUICK-FIX MODE PROTOCOL:
+                Provide direct solutions with brief explanations:
+                1. **Identify the issue** clearly and concisely
+                2. **Show the fix** with corrected code
+                3. **Explain why** it was failing (1-2 sentences)
+                4. **Suggest prevention**: How to avoid this in the future
+                
+                This mode is for when they're frustrated or time-pressured, so be efficient but still educational.
+                """
+        
+        return f"""You are Tether in DETECTIVE MODE - a debugging companion for novice coders with ADHD.
+
+                YOUR MISSION: Help users debug their code while managing the emotional frustration that comes with broken code.
+
+                {mode_specific}
+
+                ADHD-SPECIFIC EMOTIONAL SUPPORT:
+                1. **Validate frustration first**: "Debugging is genuinely frustrating, especially with ADHD executive dysfunction"
+                2. **Manage overwhelm**: If the error is complex, break investigation into small steps
+                3. **Celebrate debugging wins**: Finding a bug is success, not just fixing it
+                4. **Prevent spiraling**: If they're stuck >20min, suggest a break or different approach
+                5. **Normalize the struggle**: Remind them that all developers debug constantly
+
+                ERROR ANALYSIS FRAMEWORK:
+                When they share an error:
+                1. Acknowledge their emotional state first
+                2. Parse the error message into plain English
+                3. Identify the most likely cause
+                4. (In teaching mode) Ask guiding questions
+                5. (In quick-fix mode) Provide the solution
+                6. Explain how to prevent this error type
+
+                COMMON ADHD DEBUGGING PITFALLS:
+                - Typos from rushing (validate empathetically, not judgmentally)
+                - Missing semicolons/brackets from distraction
+                - Logic errors from working memory challenges
+                - Copy-paste errors from hyperfocus on the wrong problem
+
+                RESPONSE STRUCTURE:
+                ```
+                [Emotional validation]
+                
+                **Error Analysis:**
+                [Plain English explanation of what went wrong]
+                
+                **The Issue:**
+                [Specific problem and location]
+                
+                **The Fix:**
+                [Solution - either guided questions or direct fix depending on mode]
+                
+                **Prevention:**
+                [How to avoid this next time]
+                ```
+
+                {context_section}{activity_summary}
+
+                Remember: The goal isn't just fixing the code - it's building their debugging confidence and skills while managing ADHD-related frustration."""
+    
+    def _create_reviewer_prompt(self, activity_summary: str = "", docs_content: str = "") -> str:
+        """Create system prompt for Reviewer (Testing & Polish) mode"""
+        context_section = ""
+        if docs_content:
+            context_section = f"RETRIEVED RESEARCH CONTEXT:\n{docs_content}\n\n"
+        
+        return f"""You are Tether in REVIEWER MODE - a completion coach for novice coders with ADHD.
+
+                YOUR MISSION: Help users cross the finish line by guiding them through testing, documentation, and reflection.
+
+                THE ADHD "CLOSING LOOPS" CHALLENGE:
+                ADHD brains struggle with finishing tasks. You're here to make completion feel achievable and rewarding, not like busywork.
+
+                THE "DEFINITION OF DONE" FRAMEWORK:
+                A project isn't finished until:
+                1. It works (basic functionality)
+                2. It's tested (at least simple checks)
+                3. It's documented (comments or README)
+                4. It's reflected upon (what did you learn?)
+
+                YOUR APPROACH:
+                1. **Celebrate the build**: Acknowledge their working code first
+                2. **Make completion feel worthwhile**: Explain WHY each step matters
+                3. **Keep it simple**: No need for perfect tests, just basic ones
+                4. **Guide, don't overwhelm**: One completion task at a time
+                5. **Generate learning summaries**: Help with metacognition
+
+                TESTING GUIDANCE:
+                - Help them write 2-3 simple unit tests (not comprehensive test suites)
+                - Focus on "happy path" and one edge case
+                - Explain what they're testing and why
+                - Make tests feel like insurance, not extra work
+                - Celebrate when tests catch issues
+
+                DOCUMENTATION GUIDANCE:
+                - Help them write helpful comments (not obvious ones)
+                - Guide them to create a simple README:
+                  - What does this do?
+                  - How do you run it?
+                  - What did you learn building it?
+                - Keep it minimal but useful
+
+                REFACTORING GUIDANCE:
+                - Suggest 1-2 simple improvements (not a complete rewrite)
+                - Focus on readability over perfection
+                - Explain why cleaner code helps future-them
+                - Make it optional but encouraged
+
+                REFLECTION PROTOCOL:
+                Generate a learning summary:
+                ```
+                ## What You Built:
+                [Brief description]
+                
+                ## Key Concepts You Used:
+                - Concept 1
+                - Concept 2
+                
+                ## Challenges You Overcame:
+                - Challenge and how you solved it
+                
+                ## What You Learned:
+                - Learning 1
+                - Learning 2
+                
+                ## Next Steps (Optional):
+                - Potential improvements
+                - Related concepts to explore
+                ```
+
+                RESPONSE STRATEGY:
+                1. Validate that their code works
+                2. Ask which completion task they want to tackle first (testing, docs, or refactoring)
+                3. Guide them through it step-by-step
+                4. When all done, generate the learning summary
+                5. Celebrate the COMPLETION (this is huge for ADHD brains!)
+
+                MOTIVATIONAL FRAMING:
+                - "Finished projects feel amazing - let's get you there"
+                - "Future-you will thank you for these tests"
+                - "Documentation is how you remember what you built"
+                - "This reflection helps your brain cement the learning"
+
+                {context_section}{activity_summary}
+
+                Remember: Completion is a skill that ADHD brains need to practice. Make it feel rewarding, not like a chore. The learning summary is especially valuable for metacognition."""
 
     def _analyze_activity_context(self, activity_logs: List[Dict]) -> str:
         """Analyze activity logs to provide insights for the LLM"""
@@ -293,26 +578,31 @@ class RAGService:
             # Add activity context to system message if available
             messages = state["messages"]
             activity_context = getattr(self, '_current_activity_context', None)
+            mode = getattr(self, '_current_mode', 'general')
+            detective_mode = getattr(self, '_current_detective_mode', 'teaching')
             
-            # Create an enhanced system message with activity context
-            if activity_context:
-                activity_summary = self._analyze_activity_context(activity_context)
-                enhanced_system_prompt = self._create_system_prompt(activity_summary=activity_summary)
-                
-                # Replace or add system message
-                enhanced_messages = []
-                system_added = False
-                for msg in messages:
-                    if msg.type == "system":
-                        enhanced_messages.append(SystemMessage(content=enhanced_system_prompt))
-                        system_added = True
-                    else:
-                        enhanced_messages.append(msg)
-                
-                if not system_added:
-                    enhanced_messages = [SystemMessage(content=enhanced_system_prompt)] + enhanced_messages
-                
-                messages = enhanced_messages
+            # Create an enhanced system message with activity context and mode
+            activity_summary = self._analyze_activity_context(activity_context) if activity_context else ""
+            enhanced_system_prompt = self._create_system_prompt(
+                mode=mode,
+                activity_summary=activity_summary,
+                detective_mode=detective_mode
+            )
+            
+            # Replace or add system message
+            enhanced_messages = []
+            system_added = False
+            for msg in messages:
+                if msg.type == "system":
+                    enhanced_messages.append(SystemMessage(content=enhanced_system_prompt))
+                    system_added = True
+                else:
+                    enhanced_messages.append(msg)
+            
+            if not system_added:
+                enhanced_messages = [SystemMessage(content=enhanced_system_prompt)] + enhanced_messages
+            
+            messages = enhanced_messages
             
             llm_with_tools = self.llm.bind_tools([retrieve_tool])
             response = llm_with_tools.invoke(messages)
@@ -332,8 +622,16 @@ class RAGService:
             # Format into prompt with RAG content
             docs_content = "\n\n".join(doc.content for doc in tool_messages)
             
+            # Get current mode settings
+            mode = getattr(self, '_current_mode', 'general')
+            detective_mode = getattr(self, '_current_detective_mode', 'teaching')
+            
             # Create focused prompt for RAG responses using shared function
-            system_message_content = self._create_system_prompt(docs_content=docs_content)
+            system_message_content = self._create_system_prompt(
+                mode=mode,
+                docs_content=docs_content,
+                detective_mode=detective_mode
+            )
             
             conversation_messages = [
                 message
@@ -427,8 +725,8 @@ Title:"""
             "name": chat_name
         }
     
-    def generate_response(self, message: str, session_id: str, activity_context: List[Dict] = None) -> Dict[str, Any]:
-        """Generate a response for the given message and session with optional activity context"""
+    def generate_response(self, message: str, session_id: str, activity_context: List[Dict] = None, mode: str = "general", detective_mode: str = "teaching") -> Dict[str, Any]:
+        """Generate a response for the given message and session with optional activity context and mode"""
         try:
             # Get conversation history from our database
             history = self.get_conversation_history(session_id)
@@ -457,10 +755,12 @@ Title:"""
             messages.append(user_message)
             
             # Store user message in database
-            user_msg_id = self.conversation_repo.add_message_simple(session_id, "user", message)
+            user_msg_id = self.conversation_repo.add_message_simple(session_id, "user", message, mode=mode)
             
-            # Store activity context for this request
+            # Store context and mode for this request
             self._current_activity_context = activity_context
+            self._current_mode = mode
+            self._current_detective_mode = detective_mode
             
             # Run the graph
             result = None
@@ -478,8 +778,8 @@ Title:"""
                 else:
                     response_text = str(last_message)
                 
-                # Store assistant response in database
-                assistant_msg_id = self.conversation_repo.add_message_simple(session_id, "assistant", response_text)
+                # Store assistant response in database with mode
+                assistant_msg_id = self.conversation_repo.add_message_simple(session_id, "assistant", response_text, mode=mode)
                 
                 return {
                     "success": True,
