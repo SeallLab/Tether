@@ -105,12 +105,17 @@ export interface LLMProvider {
 }
 
 // Chat-related types
+export type ChatMode = 'planner' | 'builder' | 'detective' | 'reviewer' | 'general';
+export type DetectiveMode = 'teaching' | 'quick-fix';
+
 export interface ChatMessage {
   id: string;
   text: string;
   sender: 'user' | 'assistant';
   timestamp: number;
   sessionId: string;
+  mode?: ChatMode;
+  checklistId?: string;
 }
 
 export interface ChatSession {
@@ -126,12 +131,29 @@ export interface ChatRequest {
   message: string;
   sessionId?: string;
   context?: string;
+  mode?: ChatMode;
+  detectiveMode?: DetectiveMode;
 }
 
 export interface ChatResponse {
   message: string;
   sessionId: string;
   messageId: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  taskText: string;
+  isCompleted: boolean;
+  position: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Checklist {
+  messageId: string;
+  sessionId: string;
+  items: ChecklistItem[];
 }
 
 export interface GamificationData {

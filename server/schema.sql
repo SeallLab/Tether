@@ -17,9 +17,24 @@ CREATE TABLE IF NOT EXISTS messages (
     session_id TEXT NOT NULL,
     message_type TEXT NOT NULL, -- 'human', 'ai', 'system', 'tool'
     content TEXT NOT NULL,
+    mode TEXT DEFAULT 'general', -- 'planner', 'builder', 'detective', 'reviewer', 'general'
     metadata JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE
+);
+
+-- Checklists table to store Planner mode micro-tasks
+CREATE TABLE IF NOT EXISTS checklists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    message_id INTEGER NOT NULL,
+    task_text TEXT NOT NULL,
+    is_completed BOOLEAN DEFAULT 0,
+    position INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE,
+    FOREIGN KEY (message_id) REFERENCES messages (id) ON DELETE CASCADE
 );
 
 -- LangGraph checkpoints table (used by SqliteSaver)
@@ -55,6 +70,11 @@ CREATE INDEX IF NOT EXISTS idx_sessions_active ON sessions (is_active);
 CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages (session_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages (created_at);
 CREATE INDEX IF NOT EXISTS idx_messages_type ON messages (message_type);
+CREATE INDEX IF NOT EXISTS idx_messages_mode ON messages (mode);
+
+CREATE INDEX IF NOT EXISTS idx_checklists_session_id ON checklists (session_id);
+CREATE INDEX IF NOT EXISTS idx_checklists_message_id ON checklists (message_id);
+CREATE INDEX IF NOT EXISTS idx_checklists_position ON checklists (session_id, message_id, position);
 
 CREATE INDEX IF NOT EXISTS idx_checkpoints_thread_id ON checkpoints (thread_id);
 CREATE INDEX IF NOT EXISTS idx_checkpoints_timestamp ON checkpoints (thread_id, checkpoint_ns, checkpoint_id);
@@ -68,4 +88,11 @@ CREATE TRIGGER IF NOT EXISTS update_sessions_updated_at
     FOR EACH ROW
 BEGIN
     UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_checklists_updated_at
+    AFTER UPDATE ON checklists
+    FOR EACH ROW
+BEGIN
+    UPDATE checklists SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END; 

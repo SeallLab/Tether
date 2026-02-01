@@ -28,6 +28,9 @@ const IPC_CHANNELS = {
   GET_CHAT_HISTORY: 'get-chat-history',
   CREATE_CHAT_SESSION: 'create-chat-session',
   DELETE_CHAT_SESSION: 'delete-chat-session',
+  GET_CHECKLIST: 'get-checklist',
+  SAVE_CHECKLIST: 'save-checklist',
+  UPDATE_CHECKLIST_ITEM: 'update-checklist-item',
   
   // Dock Controls
   TOGGLE_DOCK: 'toggle-dock',
@@ -120,6 +123,9 @@ contextBridge.exposeInMainWorld('electron', {
     getHistory: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_CHAT_HISTORY, sessionId),
     createSession: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.CREATE_CHAT_SESSION, context),
     deleteSession: (sessionId: string) => ipcRenderer.invoke(IPC_CHANNELS.DELETE_CHAT_SESSION, sessionId),
+    getChecklist: (sessionId: string, messageId: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_CHECKLIST, sessionId, messageId),
+    saveChecklist: (sessionId: string, messageId: string, tasks: any[]) => ipcRenderer.invoke(IPC_CHANNELS.SAVE_CHECKLIST, sessionId, messageId, tasks),
+    updateChecklistItem: (sessionId: string, messageId: string, itemId: string, isCompleted: boolean) => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECKLIST_ITEM, sessionId, messageId, itemId, isCompleted),
     open: (context?: string) => ipcRenderer.invoke(IPC_CHANNELS.OPEN_CHAT_WINDOW, context),
     showDailyPlanNotification: () => ipcRenderer.invoke(IPC_CHANNELS.SHOW_DAILY_PLAN_NOTIFICATION)
   },
