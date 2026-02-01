@@ -110,11 +110,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
         // Restore workflow state if session had workflow messages
         if (hasWorkflowMessages) {
           setIsCodingWorkflow(true);
-          // Set mode to the most recent workflow message's mode, or default to blueprint
+          // Set mode to the most recent workflow message's mode, or default to planner
           const lastWorkflowMessage = chatMessages.reverse().find((msg: Message) => 
             msg.mode && msg.mode !== 'general'
           );
-          setCurrentMode(lastWorkflowMessage?.mode || 'blueprint');
+          setCurrentMode(lastWorkflowMessage?.mode || 'planner');
           chatMessages.reverse(); // Restore original order
         } else {
           setIsCodingWorkflow(false);
@@ -237,7 +237,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
   });
 
   const tabs: Array<{ id: ChatMode; label: string; description: string }> = [
-    { id: 'blueprint', label: 'Blueprint', description: 'Planning & Architecture' },
+    { id: 'planner', label: 'Planner', description: 'Planning & Architecture' },
     { id: 'builder', label: 'Builder', description: 'Active Coding' },
     { id: 'detective', label: 'Detective', description: 'Debugging' },
     { id: 'reviewer', label: 'Reviewer', description: 'Testing & Polish' },
@@ -245,7 +245,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
 
   const handleEnterCodingWorkflow = () => {
     setIsCodingWorkflow(true);
-    setCurrentMode('blueprint');
+    setCurrentMode('planner');
   };
 
   const handleExitCodingWorkflow = () => {
@@ -451,7 +451,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
             <p className="text-slate-400 text-sm max-w-md leading-relaxed">
               {isCodingWorkflow ? (
                 <>
-                  {currentMode === 'blueprint' && "Ready to plan your project? Share your idea and I'll break it down into manageable tasks"}
+                  {currentMode === 'planner' && "Ready to plan your project? Share your idea and I'll break it down into manageable tasks"}
                   {currentMode === 'builder' && "Let's build something! What would you like to code today?"}
                   {currentMode === 'detective' && "Got a bug? Paste your error and let's solve it together"}
                   {currentMode === 'reviewer' && "Ready to polish your project? Let's add tests, docs, and reflection"}
@@ -498,8 +498,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ context }) => {
                       </div>
                     )}
                     
-                    {/* Render checklist for Blueprint mode or regular markdown */}
-                    {message.mode === 'blueprint' && message.text.includes('- [ ]') ? (
+                    {/* Render checklist for planner mode or regular markdown */}
+                    {message.mode === 'planner' && message.text.includes('- [ ]') ? (
                       <ChecklistRenderer
                         content={message.text}
                         messageId={message.id}

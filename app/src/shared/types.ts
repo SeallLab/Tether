@@ -105,7 +105,7 @@ export interface LLMProvider {
 }
 
 // Chat-related types
-export type ChatMode = 'blueprint' | 'builder' | 'detective' | 'reviewer' | 'general';
+export type ChatMode = 'planner' | 'builder' | 'detective' | 'reviewer' | 'general';
 export type DetectiveMode = 'teaching' | 'quick-fix';
 
 export interface ChatMessage {

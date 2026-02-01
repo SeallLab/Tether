@@ -303,7 +303,7 @@ class ConversationRepository:
     
     def save_checklist(self, session_id: str, message_id: int, tasks: List[Dict[str, Any]]) -> bool:
         """
-        Save a checklist for a Blueprint mode message
+        Save a checklist for a Planner mode message
         
         Args:
             session_id: Session ID

@@ -226,7 +226,7 @@ def get_checklist(session_id: str, message_id: int):
 
 @session_bp.route("/checklist/<session_id>/<int:message_id>", methods=["POST"])
 def save_checklist(session_id: str, message_id: int):
-    """Save checklist items for a Blueprint mode message"""
+    """Save checklist items for a Planner mode message"""
     from app import rag_service
     
     if rag_service is None:

@@ -17,13 +17,13 @@ CREATE TABLE IF NOT EXISTS messages (
     session_id TEXT NOT NULL,
     message_type TEXT NOT NULL, -- 'human', 'ai', 'system', 'tool'
     content TEXT NOT NULL,
-    mode TEXT DEFAULT 'general', -- 'blueprint', 'builder', 'detective', 'reviewer', 'general'
+    mode TEXT DEFAULT 'general', -- 'planner', 'builder', 'detective', 'reviewer', 'general'
     metadata JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (session_id) REFERENCES sessions (id) ON DELETE CASCADE
 );
 
--- Checklists table to store Blueprint mode micro-tasks
+-- Checklists table to store Planner mode micro-tasks
 CREATE TABLE IF NOT EXISTS checklists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,
