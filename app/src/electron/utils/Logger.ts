@@ -21,7 +21,17 @@ export class Logger {
   private format(level: LogLevel, message: string, data?: any) {
     const name = this.name;
     const scope = name ? `[${name}]` : "";
-    return `[${level.toUpperCase()}]${scope} ${message} ${data ? JSON.stringify(data) : ""}`;
+    
+    let dataString = '';
+    if (data) {
+      if (data instanceof Error) {
+        dataString = JSON.stringify(data, Object.getOwnPropertyNames(data));
+      } else {
+        dataString = JSON.stringify(data);
+      }
+    }
+    
+    return `[${level.toUpperCase()}]${scope} ${message} ${data ? dataString : ""}`;
   }
 
   private write(line: string) {

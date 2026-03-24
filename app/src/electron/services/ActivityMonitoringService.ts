@@ -379,8 +379,9 @@ export class ActivityMonitoringService {
   public initializeLLM(apiKey?: string): void {
     try {
       if (apiKey) {
-        // Use Gemini with API key
         this.llmService = createLLMService(this.activityLogger, 'gemini', { apiKey });
+      } else {
+        this.llmService = createLLMService(this.activityLogger, 'mock');
       }
     } catch (error) {
       console.error('[ActivityMonitoringService] Failed to initialize LLM service:', error);

@@ -33,7 +33,7 @@ export class FocusRewardService {
     // Check for rewards every 10 minutes
     setInterval(() => {
       this.checkAndAwardFocusRewards();
-    }, 1 * 60 * 100);
+    }, 10 * 60 * 1000);
     
   }
 

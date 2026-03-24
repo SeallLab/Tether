@@ -60,13 +60,13 @@ app.on("ready", async () => {
   // Start activity monitoring
   await activityService.start();
   
-  // Initialize LLM service with API key
-  const googleApiKey = process.env.GOOGLE_API_KEY;
+  // Initialize LLM service — env var takes priority, then saved settings, then mock fallback
+  const googleApiKey = process.env.GOOGLE_API_KEY || settingsService.getLLMSettings().apiKey;
   if (googleApiKey) {
-    console.log('[Main] Found Google API key in environment, initializing with Gemini');
+    console.log('[Main] Initializing LLM service with API key');
     activityService.initializeLLM(googleApiKey);
   } else {
-    console.log('[Main] No Google API key found, using mock provider');
+    console.log('[Main] No API key found, using mock LLM provider');
     activityService.initializeLLM();
   }
   console.log('[Main] LLM service initialized');

@@ -41,7 +41,8 @@ export class ChatService {
       });
 
       if (!response.ok) {
-        throw new Error(response.error || 'Failed to send message');
+        const errorMsg = response.data?.error || response.error || 'Failed to send message';
+        throw new Error(errorMsg);
       }
 
       const data = response.data;

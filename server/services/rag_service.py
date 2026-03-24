@@ -638,7 +638,9 @@ Title:"""
             messages.append(user_message)
             
             # Store user message in database
-            user_msg_id = self.conversation_repo.add_message_simple(session_id, "user", message, mode=mode)
+            user_msg_id = self.conversation_repo.add_message_simple(
+                session_id, "user", message, metadata={"activity_context": activity_context} if activity_context else None, mode=mode
+            )
             
             # Store context and mode for this request
             self._current_activity_context = activity_context
