@@ -29,6 +29,9 @@ export const IPC_CHANNELS = {
   GET_CHAT_HISTORY: 'get-chat-history',
   CREATE_CHAT_SESSION: 'create-chat-session',
   DELETE_CHAT_SESSION: 'delete-chat-session',
+  GET_CHECKLIST: 'get-checklist',
+  SAVE_CHECKLIST: 'save-checklist',
+  UPDATE_CHECKLIST_ITEM: 'update-checklist-item',
   
   // Dock Controls
   TOGGLE_DOCK: 'toggle-dock',

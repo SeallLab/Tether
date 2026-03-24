@@ -31,11 +31,13 @@ export class ChatService {
       // Get recent activity logs for context (last 2 hours)
       const recentLogs = await this.getRecentActivityContext();
 
-      // Send message to Flask API with activity context
+      // Send message to Flask API with activity context and mode
       const response = await this.pythonServerService.apiRequest('POST', '/generate', {
         message: request.message,
         session_id: sessionId,
-        activity_context: recentLogs
+        activity_context: recentLogs,
+        mode: request.mode || 'general',
+        detective_mode: request.detectiveMode || 'teaching'
       });
 
       if (!response.ok) {
@@ -196,6 +198,65 @@ export class ChatService {
     } catch (error) {
       this.logger.error('Error getting activity context:', error);
       return [];
+    }
+  }
+
+  async getChecklist(sessionId: string, messageId: string): Promise<any> {
+    try {
+      const response = await this.pythonServerService.apiRequest('GET', `/checklist/${sessionId}/${messageId}`);
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to get checklist');
+      }
+
+      const data = response.data;
+      if (!data.success) {
+        throw new Error(data.error || 'API returned error');
+      }
+
+      return data.data || [];
+
+    } catch (error) {
+      this.logger.error('Error getting checklist:', error);
+      return [];
+    }
+  }
+
+  async saveChecklist(sessionId: string, messageId: string, tasks: any[]): Promise<boolean> {
+    try {
+      const response = await this.pythonServerService.apiRequest('POST', `/checklist/${sessionId}/${messageId}`, {
+        tasks: tasks
+      });
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to save checklist');
+      }
+
+      const data = response.data;
+      return data.success || false;
+
+    } catch (error) {
+      this.logger.error('Error saving checklist:', error);
+      return false;
+    }
+  }
+
+  async updateChecklistItem(sessionId: string, messageId: string, itemId: string, isCompleted: boolean): Promise<boolean> {
+    try {
+      const response = await this.pythonServerService.apiRequest('PATCH', `/checklist/${sessionId}/${messageId}/item/${itemId}`, {
+        isCompleted: isCompleted
+      });
+
+      if (!response.ok) {
+        throw new Error(response.error || 'Failed to update checklist item');
+      }
+
+      const data = response.data;
+      return data.success || false;
+
+    } catch (error) {
+      this.logger.error('Error updating checklist item:', error);
+      return false;
     }
   }
 } 

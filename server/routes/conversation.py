@@ -29,7 +29,8 @@ def get_conversation_history(session_id: str):
                 "text": msg.get("content", ""),
                 "sender": "user" if msg.get("type") == "human" else "assistant",
                 "timestamp": msg.get("timestamp", 0),
-                "sessionId": session_id
+                "sessionId": session_id,
+                "mode": msg.get("mode", "general")
             })
         
         return jsonify({

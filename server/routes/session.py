@@ -162,6 +162,8 @@ def generate_response():
         message = data.get("message")
         session_id = data.get("session_id")
         activity_context = data.get("activity_context", [])
+        mode = data.get("mode", "general")
+        detective_mode = data.get("detective_mode", "teaching")
         
         if not message:
             return jsonify({
@@ -175,8 +177,8 @@ def generate_response():
                 "error": "Session ID is required"
             }), 400
         
-        # Generate response with activity context
-        result = rag_service.generate_response(message, session_id, activity_context)
+        # Generate response with activity context and mode
+        result = rag_service.generate_response(message, session_id, activity_context, mode, detective_mode)
         
         if result["success"]:
             # Format response for ChatService compatibility
@@ -191,6 +193,126 @@ def generate_response():
         else:
             return jsonify(result), 500
             
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@session_bp.route("/checklist/<session_id>/<int:message_id>", methods=["GET"])
+def get_checklist(session_id: str, message_id: int):
+    """Get checklist items for a specific message"""
+    from app import rag_service
+    
+    if rag_service is None:
+        return jsonify({
+            "error": "RAG service not initialized"
+        }), 500
+    
+    try:
+        items = rag_service.conversation_repo.get_checklist(session_id, message_id)
+        return jsonify({
+            "success": True,
+            "data": items
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@session_bp.route("/checklist/<session_id>/<int:message_id>", methods=["POST"])
+def save_checklist(session_id: str, message_id: int):
+    """Save checklist items for a Planner mode message"""
+    from app import rag_service
+    
+    if rag_service is None:
+        return jsonify({
+            "error": "RAG service not initialized"
+        }), 500
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No JSON data provided"
+            }), 400
+        
+        tasks = data.get("tasks", [])
+        
+        if not tasks:
+            return jsonify({
+                "success": False,
+                "error": "Tasks are required"
+            }), 400
+        
+        success = rag_service.conversation_repo.save_checklist(session_id, message_id, tasks)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Checklist saved successfully"
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Failed to save checklist"
+            }), 500
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@session_bp.route("/checklist/<session_id>/<int:message_id>/item/<int:item_id>", methods=["PATCH"])
+def update_checklist_item(session_id: str, message_id: int, item_id: int):
+    """Update the completion status of a checklist item"""
+    from app import rag_service
+    
+    if rag_service is None:
+        return jsonify({
+            "error": "RAG service not initialized"
+        }), 500
+    
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No JSON data provided"
+            }), 400
+        
+        is_completed = data.get("isCompleted")
+        
+        if is_completed is None:
+            return jsonify({
+                "success": False,
+                "error": "isCompleted field is required"
+            }), 400
+        
+        success = rag_service.conversation_repo.update_checklist_item(
+            session_id, message_id, item_id, is_completed
+        )
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "Checklist item updated successfully"
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Failed to update checklist item"
+            }), 500
+        
     except Exception as e:
         return jsonify({
             "success": False,
