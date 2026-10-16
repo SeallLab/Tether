@@ -18,6 +18,34 @@ The Tether application now includes an embedded Python Flask server that provide
 
 ## Build Process
 
+1. **Navigate to the app directory:**
+   ```bash
+   cd app
+   ```
+
+2. **Create a virtual environment:**
+   ```bash
+   # Using venv (built-in)
+   python3 -m venv venv
+   ```
+
+3. **Activate the virtual environment:**
+   
+   **On macOS/Linux:**
+   ```bash
+   source venv/bin/activate
+   ```
+   
+   **On Windows:**
+   ```bash
+   # Command Prompt
+   venv\Scripts\activate
+   
+   # PowerShell
+   venv\Scripts\Activate.ps1
+
+## Creating the App
+
 ### 1. Development Build
 
 For local development with hot reload:

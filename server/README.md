@@ -77,6 +77,28 @@ It's highly recommended to use a virtual environment to isolate project dependen
    cp .env.example .env
    ```
 
+   The Google API key must be available as the GOOGLE_API_KEY environment variable:
+   
+   **On macOS/Linux:**
+   ```bash
+   export GOOGLE_API_KEY="your-google-api-key"
+   ```
+
+   **On Windows Command Prompt:**
+   ```bash
+   set GOOGLE_API_KEY=your-google-api-key
+   ```
+
+   **On Windows PowerShell:**
+   ```bash
+   $env:GOOGLE_API_KEY="your-google-api-key"
+   ```
+
+   Replace **your-google-api-key** with your actual Google AI API key.
+
+   Note: These commands set the environment variable for the current terminal session. If you open a new terminal, you will need to export the API key again before running the indexing script or server.
+
+
 ### Document Indexing
 
 Before running the server, you need to create a vector store from your PDF documents:
@@ -95,6 +117,7 @@ Before running the server, you need to create a vector store from your PDF docum
 
    This will create a `vector_store/` directory containing the indexed documents.
 
+**If you receive 429 (RESOURCE_EXHAUSTED) errors during indexing while using Gemini embeddings, you may have exceeded your Gemini API quota or rate limits. Check your Gemini API key usage limits.**
 ## Usage
 
 ### Starting the Server
